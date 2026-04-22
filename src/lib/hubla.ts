@@ -75,7 +75,7 @@ export interface HublaWebhookPayload {
   type?: string
   event?: {
     subscription?: HublaSubscription
-    invoice?: any // Usa any pois a fatura tem estrutura complexa
+    invoice?: Record<string, unknown> // Objeto complexo da Hubla
     member?: HublaUser
     refund?: HublaRefund
     product?: HublaProduct

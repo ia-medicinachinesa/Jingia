@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   // Tenta extrair do header, se não houver, tenta extrair da raiz do payload (formato v2.0.0)
   const headerEvent = req.headers.get(HUBLA_HEADERS.EVENT)
   const bodyEvent = payload.type
-  let rawEventType = headerEvent || bodyEvent
+  const rawEventType = headerEvent || bodyEvent
 
   if (!rawEventType) {
     console.warn('[HUBLA WEBHOOK] Tipo de evento não identificado (Header ou Body)')
