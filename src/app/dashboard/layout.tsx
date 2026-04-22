@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { checkSubscription } from '@/lib/subscription'
-import Sidebar from '@/components/Sidebar'
-import DashboardHeader from '@/components/DashboardHeader'
+import DashboardShell from '@/components/DashboardShell'
 import { PlanId } from '@/lib/plans'
 
 const isClerkConfigured =
@@ -32,19 +31,14 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar planId={planId} />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <DashboardHeader
-          userName={userName}
-          planId={planId}
-          messagesUsed={messagesUsed}
-          messagesLimit={messagesLimit}
-        />
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardShell
+      userName={userName}
+      planId={planId}
+      messagesUsed={messagesUsed}
+      messagesLimit={messagesLimit}
+    >
+      {children}
+    </DashboardShell>
   )
 }
+

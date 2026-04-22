@@ -1,8 +1,20 @@
 import Link from 'next/link'
-import { Lock } from 'lucide-react'
+import { Lock, Clock, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, LucideIcon } from 'lucide-react'
 import { AssistantConfig, canAccessAssistant } from '@/lib/assistants'
 import { PlanId, PLAN_DISPLAY } from '@/lib/plans'
 import { cn } from '@/lib/utils'
+
+// Mapeamento de Ícones Fine-Line para os Assistentes
+const ASSISTANT_ICONS: Record<string, LucideIcon> = {
+  'ASS-01': Sparkles,
+  'ASS-02': FileText,
+  'ASS-03': Target,
+  'ASS-04': Ear,
+  'ASS-05': Zap,
+  'ASS-06': Activity,
+  'ASS-07': BookOpen,
+  'ASS-08': Megaphone,
+}
 
 interface Props {
   assistant: AssistantConfig
@@ -11,36 +23,62 @@ interface Props {
 
 export default function AssistantCard({ assistant, planId }: Props) {
   const hasAccess = canAccessAssistant(assistant.id, planId)
+  const isConfigured = assistant.openaiId && !assistant.openaiId.includes('placeholder')
 
   // Encontra o plano mínimo necessário para exibir no CTA
   const requiredPlan = assistant.plans[0]
   const requiredPlanName = PLAN_DISPLAY[requiredPlan as keyof typeof PLAN_DISPLAY]?.name
 
+  const AssistantIcon = ASSISTANT_ICONS[assistant.id] || Sparkles
+
   const card = (
     <div
       className={cn(
-        'rounded-2xl border p-5 transition-all h-full flex flex-col',
-        hasAccess
-          ? 'border-gray-200 hover:border-brand-teal hover:shadow-md cursor-pointer bg-white'
-          : 'border-gray-100 bg-gray-50 opacity-70 cursor-not-allowed'
+        'rounded-2xl border p-6 transition-all duration-300 h-full flex flex-col animate-fade-in-up group relative overflow-hidden',
+        'backdrop-blur-sm',
+        !isConfigured
+          ? 'border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-gray-950/40 opacity-60 cursor-default'
+          : hasAccess
+            ? 'border-white/60 dark:border-white/10 bg-white/70 dark:bg-gray-800/40 hover:border-brand-teal/50 dark:hover:border-brand-teal/50 hover:shadow-xl dark:hover:shadow-brand-teal/5 hover:-translate-y-1 cursor-pointer'
+            : 'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-gray-800/20 opacity-70 cursor-not-allowed'
       )}
     >
-      <div className="flex items-start justify-between mb-4">
-        <span className="text-4xl drop-shadow-sm">{assistant.icon}</span>
-        {!hasAccess && (
-          <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-gray-500 bg-gray-200 px-2.5 py-1 rounded-full shadow-inner">
+      {/* Background Decorativo sutil */}
+      <div className="absolute -right-4 -top-4 w-24 h-24 bg-brand-teal/5 rounded-full blur-3xl group-hover:bg-brand-teal/10 transition-colors" />
+
+      <div className="flex items-start justify-between mb-6">
+        <div className={cn(
+          "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm",
+          hasAccess 
+            ? "bg-gradient-to-br from-brand-teal/20 to-brand-blue/20 text-brand-blue dark:text-brand-teal group-hover:scale-110 group-hover:rotate-3"
+            : "bg-gray-100 dark:bg-gray-800 text-gray-400"
+        )}>
+          <AssistantIcon size={24} strokeWidth={1.5} />
+        </div>
+        
+        {!isConfigured ? (
+          <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 rounded-full border border-amber-200/50 dark:border-amber-800/50">
+            <Clock size={12} strokeWidth={2.5} />
+            Em breve
+          </span>
+        ) : !hasAccess && (
+          <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2.5 py-1 rounded-full shadow-inner">
             <Lock size={12} strokeWidth={2.5} />
             {requiredPlanName}
           </span>
         )}
       </div>
 
-      <h3 className="font-semibold text-gray-900 mb-2 truncate">{assistant.name}</h3>
-      <p className="text-sm text-gray-500 leading-relaxed flex-1 line-clamp-3">
+      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 truncate group-hover:text-brand-teal transition-colors">{assistant.name}</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed flex-1 line-clamp-3">
         {assistant.description}
       </p>
 
-      {!hasAccess && (
+      {!isConfigured ? (
+        <p className="text-xs text-amber-600 dark:text-amber-500/80 mt-4 font-medium italic">
+          Este assistente será ativado em breve
+        </p>
+      ) : !hasAccess && (
         <p className="text-xs text-brand-teal mt-4 font-medium flex items-center justify-between">
           Disponível no {requiredPlanName}
           <span className="text-lg">→</span>
@@ -49,8 +87,8 @@ export default function AssistantCard({ assistant, planId }: Props) {
     </div>
   )
 
-  // Assistentes bloqueados não são links
-  if (!hasAccess) return card
+  // Assistentes não configurados ou bloqueados não são links
+  if (!isConfigured || !hasAccess) return card
 
   return (
     <Link href={`/dashboard/chat/${assistant.id}`} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-brand-teal rounded-2xl">
@@ -58,3 +96,4 @@ export default function AssistantCard({ assistant, planId }: Props) {
     </Link>
   )
 }
+

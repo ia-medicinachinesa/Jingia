@@ -5,9 +5,7 @@ import { cn } from '@/lib/utils'
 
 // Próximo plano recomendado para upgrade
 const NEXT_PLAN: Partial<Record<PlanId, string>> = {
-  trial:     'essencial',
   essencial: 'profissional',
-  profissional: 'premium',
 }
 
 interface Props {

@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   }
 
   // Agrupa assistentes por categoria
-  const categories = [...new Set(ASSISTANTS.map(a => a.category))]
+  const categories = Array.from(new Set(ASSISTANTS.map(a => a.category)))
 
   return (
     <div className="max-w-6xl mx-auto pb-12">

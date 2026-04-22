@@ -1,19 +1,29 @@
-import { currentUser } from '@clerk/nextjs/server'
 import { redirect, notFound } from 'next/navigation'
 import { checkSubscription } from '@/lib/subscription'
 import { ASSISTANTS, canAccessAssistant } from '@/lib/assistants'
 import { PlanId } from '@/lib/plans'
 import ChatInterface from './ChatInterface'
 
+const isClerkConfigured =
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('placeholder')
+
 interface Props {
   params: { assistantId: string }
+  searchParams: { thread?: string }
 }
 
-export default async function ChatPage({ params }: Props) {
-  const user = await currentUser()
-  if (!user) redirect('/sign-in')
+export default async function ChatPage({ params, searchParams }: Props) {
+  let userId = 'dev_123'
 
-  const subscription = await checkSubscription(user.id)
+  if (isClerkConfigured) {
+    const { currentUser } = await import('@clerk/nextjs/server')
+    const user = await currentUser()
+    if (!user) redirect('/sign-in')
+    userId = user.id
+  }
+
+  const subscription = await checkSubscription(userId)
   
   // Em prod: Descomentar
   // if (!subscription.isActive) redirect('/planos?reason=no-subscription')
@@ -36,7 +46,9 @@ export default async function ChatPage({ params }: Props) {
           planId={planId}
           messagesUsed={subscription.monthlyMessageCount}
           messagesLimit={subscription.messageLimit}
+          initialThreadId={searchParams.thread ?? null}
         />
     </div>
   )
 }
+

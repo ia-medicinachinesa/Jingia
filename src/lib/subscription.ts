@@ -6,30 +6,33 @@ export interface SubscriptionInfo {
   planId: string | null
   monthlyMessageCount: number
   messageLimit: number
-  expiresAt: Date | null
+  expiresAt: string | null
 }
 
 export async function checkSubscription(clerkUserId: string): Promise<SubscriptionInfo> {
-  const user = await db.query(
-    `SELECT subscription_status, plan_id, monthly_message_count, subscription_expires_at
-     FROM users WHERE clerk_user_id = $1`,
-    [clerkUserId]
-  )
+  const user = await db.getUserByClerkId(clerkUserId)
 
-  if (!user.rows[0]) {
-    return { isActive: false, planId: null, monthlyMessageCount: 0, messageLimit: 0, expiresAt: null }
+  // Se o usuário não existe no banco (ainda não sincronizado pelo webhook)
+  // Retornamos como inativo, o que forçará o redirecionamento
+  if (!user) {
+    return {
+      isActive: false,
+      planId: null,
+      monthlyMessageCount: 0,
+      messageLimit: 0,
+      expiresAt: null
+    }
   }
 
-  const row = user.rows[0]
-  const isActive = row.subscription_status === 'active'
-  const planId = row.plan_id ?? 'essencial'
-  const messageLimit = PLAN_LIMITS[planId as keyof typeof PLAN_LIMITS] ?? 50
+  const isActive = user.subscription_status === 'active'
+  const planId = user.plan_id ?? 'essencial'
+  const messageLimit = PLAN_LIMITS[planId as keyof typeof PLAN_LIMITS] ?? 20
 
   return {
     isActive,
     planId,
-    monthlyMessageCount: row.monthly_message_count,
+    monthlyMessageCount: user.monthly_message_count,
     messageLimit,
-    expiresAt: row.subscription_expires_at,
+    expiresAt: user.subscription_expires_at,
   }
 }

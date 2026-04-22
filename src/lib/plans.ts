@@ -1,8 +1,6 @@
 export const PLAN_LIMITS = {
-  trial:        parseInt(process.env.MSG_LIMIT_TRIAL        ?? '20'),
-  essencial:    parseInt(process.env.MSG_LIMIT_ESSENCIAL    ?? '50'),
-  profissional: parseInt(process.env.MSG_LIMIT_PROFISSIONAL ?? '200'),
-  premium:      parseInt(process.env.MSG_LIMIT_PREMIUM      ?? '500'),
+  essencial:    parseInt(process.env.MSG_LIMIT_ESSENCIAL    ?? '150'),
+  profissional: parseInt(process.env.MSG_LIMIT_PROFISSIONAL ?? '600'),
 } as const
 
 export type PlanId = keyof typeof PLAN_LIMITS
@@ -12,37 +10,24 @@ export const PLAN_DISPLAY = {
     name:  'Essencial',
     price: 'R$ 29,90/mês',
     color: 'plan-essencial',
-    description: 'Para quem quer começar com baixo custo',
+    description: 'Plano de entrada para uso básico do raciocínio clínico',
     features: [
-      'IA Principal para dúvidas gerais',
-      'Correlação de sintomas',
+      'Acesso à Jing IA',
       `${PLAN_LIMITS.essencial} mensagens por mês`,
     ],
   },
   profissional: {
     name:  'Profissional',
-    price: 'R$ 59,90/mês',
+    price: 'R$ 79,90/mês',
     color: 'plan-profissional',
-    description: 'Para acupunturistas frequentes',
+    description: 'Acesso completo a todas as IAs e módulos',
     features: [
-      'Tudo do Essencial',
-      'Módulo YNSA',
-      'Auriculoterapia IA',
-      'Fotobiomodulação IA',
+      'Acesso à Jing IA',
+      'Analista de Artigos Científicos',
+      'Gerador de Estudo de Caso',
+      'Consultório Inteligente IA',
+      'Todas as novas IAs adicionadas',
       `${PLAN_LIMITS.profissional} mensagens por mês`,
-    ],
-  },
-  premium: {
-    name:  'Premium',
-    price: 'R$ 97,00/mês',
-    color: 'plan-premium',
-    description: 'Para profissionais avançados',
-    features: [
-      'Tudo do Profissional',
-      'Interpretação de exames',
-      'Síntese de artigos científicos',
-      'Estratégia de marketing clínico',
-      `${PLAN_LIMITS.premium} mensagens por mês`,
     ],
   },
 } satisfies Record<string, { name: string; price: string; color: string; description: string; features: string[] }>

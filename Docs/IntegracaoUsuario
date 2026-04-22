@@ -1,0 +1,263 @@
+# Arquitetura de Gerenciamento de Usuários e Acesso — Jing IA
+
+## O Problema Central
+
+Existem **3 sistemas independentes** que não se conhecem:
+
+| Sistema | Responsabilidade | Sabe quem é o usuário? |
+|---------|-----------------|----------------------|
+| **Hubla** | Cobra o dinheiro, gerencia assinatura | Sabe o **e-mail** e o **plano** |
+| **Clerk** | Faz login/cadastro, protege rotas | Sabe o **e-mail** e o **clerk_user_id** |
+| **Supabase** | Armazena dados do sistema | Sabe **tudo** que mandamos pra ele |
+
+> O desafio é: **como o sistema sabe que o João que pagou na Hubla é o mesmo João que logou no Clerk?**
+
+A resposta: **o e-mail é a chave de vínculo**, e o **Supabase é o ponto central de verdade**.
+
+---
+
+## Visão Geral: Os 3 Momentos
+
+```mermaid
+graph TD
+    A["👤 Usuário vê anúncio"] --> B["💳 Assina na Hubla"]
+    B --> C["🔔 Hubla envia webhook"]
+    C --> D["📦 Supabase: status = active, plan_id = profissional"]
+    
+    E["👤 Usuário abre jing-ia.com"] --> F["🔑 Faz login/cadastro no Clerk"]
+    F --> G["🔔 Clerk envia webhook"]
+    G --> H["📦 Supabase: clerk_user_id vinculado ao e-mail"]
+    
+    I["👤 Usuário clica em assistente"] --> J["🛡️ Backend: Clerk válido?"]
+    J --> K["🛡️ Backend: Assinatura ativa no Supabase?"]
+    K --> L["✅ Acessa o chat"]
+    K --> M["❌ Redireciona para /planos"]
+```
+
+---
+
+## Momento 1: O Usuário Assina na Hubla
+
+O pagamento acontece **100% fora do seu sistema** (RN-04 do documento técnico). O Jing IA nunca vê cartão de crédito.
+
+### O que acontece:
+
+1. Usuário clica em "Assinar" na página `/planos`
+2. É redirecionado para o **checkout da Hubla** (URL externa)
+3. Faz o pagamento lá
+4. A Hubla **dispara um webhook** para o seu servidor
+
+### O Webhook da Hubla
+
+```mermaid
+sequenceDiagram
+    participant H as Hubla
+    participant S as Seu Servidor /api/webhooks/pagamento
+    participant DB as Supabase (tabela users)
+    participant AUD as Supabase (subscription_events)
+
+    H->>S: POST com payload + assinatura HMAC
+    S->>S: Valida HMAC com PAYMENT_WEBHOOK_SECRET
+    Note over S: Se HMAC inválido → HTTP 401 (RN-05)
+    S->>DB: SELECT * FROM users WHERE email = payload.email
+    alt Usuário existe no banco
+        S->>DB: UPDATE status='active', plan_id='profissional', expires_at=...
+    else Usuário ainda não fez cadastro no Clerk
+        S->>DB: INSERT com email, status='active', plan_id, clerk_user_id=NULL
+        Note over DB: clerk_user_id será preenchido quando ele logar pela primeira vez
+    end
+    S->>AUD: INSERT em subscription_events (auditoria)
+    S->>H: HTTP 200 OK
+```
+
+> [!IMPORTANT]
+> **Referência do Documento Técnico:**
+> - **RN-04** (Seção 3): "O JIng IA jamais processa, armazena ou transita dados de cartão de crédito."
+> - **RN-05** (Seção 3): "O status de assinatura no banco só pode ser alterado pelo endpoint de webhook, após validação da assinatura HMAC."
+> - **Seção 9.2**: Define o fluxo completo de webhook em 7 etapas obrigatórias.
+
+### O que fica no banco após o pagamento:
+
+| Campo | Valor |
+|-------|-------|
+| `email` | `joao@email.com` |
+| `clerk_user_id` | `NULL` (ainda não logou) |
+| `subscription_status` | `active` |
+| `plan_id` | `profissional` |
+| `subscription_expires_at` | `2026-05-06` |
+| `monthly_message_count` | `0` |
+
+---
+
+## Momento 2: O Usuário Faz Login/Cadastro
+
+Agora o João, que já pagou, vai acessar o **jing-ia.com** e se cadastrar ou logar.
+
+### O que acontece:
+
+1. Usuário acessa `/sign-in` ou `/sign-up`
+2. O **Clerk** cuida de todo o formulário (e-mail + senha, ou Google)
+3. Ao criar a conta, o Clerk **dispara um webhook** para o seu servidor
+
+### O Webhook do Clerk
+
+```mermaid
+sequenceDiagram
+    participant C as Clerk
+    participant S as Seu Servidor /api/webhooks/clerk
+    participant DB as Supabase (tabela users)
+
+    C->>S: POST evento "user.created" com {id, email}
+    S->>S: Valida assinatura Svix com CLERK_WEBHOOK_SECRET
+    S->>DB: SELECT * FROM users WHERE email = payload.email
+    alt Já existe registro (pagamento veio antes)
+        S->>DB: UPDATE clerk_user_id = 'user_abc123' WHERE email = 'joao@email.com'
+        Note over DB: Agora o vínculo está feito!
+    else Não existe (cadastrou antes de pagar)
+        S->>DB: INSERT com clerk_user_id, email, status='inactive'
+        Note over DB: Sem assinatura ativa, será redirecionado para /planos
+    end
+    S->>C: HTTP 200 OK
+```
+
+> [!IMPORTANT]
+> **Referência do Documento Técnico:**
+> - **RN-02** (Seção 3): "Todo usuário autenticado via Clerk deve ter um registro correspondente na tabela users. O campo clerk_user_id é a chave de vínculo."
+> - **Seção 7.3**: Define os 3 eventos do Clerk que devem ser processados: `user.created`, `user.updated`, `user.deleted`.
+
+### O que fica no banco após o login (vinculado):
+
+| Campo | Valor |
+|-------|-------|
+| `email` | `joao@email.com` |
+| `clerk_user_id` | `user_abc123` ✅ **Agora vinculado!** |
+| `subscription_status` | `active` |
+| `plan_id` | `profissional` |
+
+---
+
+## Momento 3: O Usuário Tenta Acessar um Assistente
+
+Agora vem a validação. Quando o João clica em "IA Principal" no Dashboard:
+
+### Fluxo de Validação Completo
+
+```mermaid
+flowchart TD
+    A["Usuário clica no assistente"] --> B{"Middleware Clerk: Sessão válida?"}
+    B -->|Não| C["Redireciona /sign-in"]
+    B -->|Sim| D["Backend: Extrai clerk_user_id da sessão"]
+    D --> E["SELECT * FROM users WHERE clerk_user_id = ?"]
+    E --> F{"Usuário existe no banco?"}
+    F -->|Não| G["HTTP 500 — Erro de sincronização (RN-02)"]
+    F -->|Sim| H{"subscription_status = 'active'?"}
+    H -->|Não| I["HTTP 403 — Redireciona /planos (RN-01)"]
+    H -->|Sim| J{"plan_id permite este assistente?"}
+    J -->|Não| K["HTTP 403 — Plano insuficiente"]
+    J -->|Sim| L{"monthly_message_count < limite?"}
+    L -->|Não| M["HTTP 429 — Limite atingido (RN-07)"]
+    L -->|Sim| N["✅ Envia mensagem para OpenAI"]
+```
+
+### Cada camada de proteção explicada:
+
+| Camada | Quem valida | O que verifica | Se falhar |
+|--------|------------|---------------|-----------|
+| **1. Middleware** | Clerk | Token JWT válido na sessão? | → `/sign-in` |
+| **2. Existência** | Supabase | `clerk_user_id` existe no banco? | → HTTP 500 |
+| **3. Assinatura** | Supabase | `subscription_status = 'active'`? | → `/planos` |
+| **4. Plano** | Código | Plano do usuário inclui este assistente? | → HTTP 403 |
+| **5. Quota** | Supabase + Upstash | Mensagens < limite mensal? | → HTTP 429 |
+
+> [!IMPORTANT]
+> **Referência do Documento Técnico:**
+> - **RN-01** (Seção 3): "Nenhum usuário pode acessar qualquer assistente sem assinatura ativa no momento da requisição. Verificação feita no backend a cada chamada."
+> - **Seção 6.3**: Define as 11 etapas do fluxo técnico completo de uma mensagem.
+
+---
+
+## Os Cenários Reais
+
+### Cenário A: Pagou primeiro, cadastrou depois (mais comum)
+```
+1. João assina na Hubla → banco: {email: joao@email, status: active, clerk_id: NULL}
+2. João acessa o site e se cadastra → Clerk webhook preenche clerk_user_id
+3. João clica no assistente → Backend confirma: active + profissional → ✅ Acesso
+```
+
+### Cenário B: Cadastrou primeiro, pagou depois
+```
+1. João se cadastra no site → banco: {email: joao@email, status: inactive, clerk_id: user_123}
+2. João tenta acessar assistente → Backend: status = inactive → ❌ Redireciona /planos
+3. João assina na Hubla → webhook atualiza status → active
+4. João tenta de novo → ✅ Acesso
+```
+
+### Cenário C: Cancelou a assinatura
+```
+1. Hubla dispara webhook "subscription.canceled"
+2. Backend: UPDATE status = 'canceled', mantém expires_at
+3. João ainda acessa até expires_at (pagou até lá)
+4. Após expires_at, backend verifica data → ❌ Acesso negado
+```
+
+### Cenário D: Pediu reembolso
+```
+1. Hubla dispara webhook "payment.refunded"
+2. Backend: UPDATE status = 'inactive', expires_at = NULL
+3. Acesso revogado IMEDIATAMENTE (RN-06)
+```
+
+---
+
+## Resumo Visual da Arquitetura
+
+```mermaid
+graph LR
+    subgraph "Mundo Externo"
+        U["👤 Usuário"]
+        HB["💳 Hubla"]
+    end
+
+    subgraph "Seu Sistema (Vercel)"
+        CL["🔑 Clerk<br/>Login + Sessão"]
+        MW["🛡️ Middleware<br/>Protege rotas"]
+        API["⚡ API Routes<br/>/api/chat<br/>/api/webhooks"]
+        FE["🖥️ Frontend<br/>Dashboard + Chat"]
+    end
+
+    subgraph "Infraestrutura"
+        SB["📦 Supabase<br/>Banco de Dados<br/>(fonte de verdade)"]
+        RD["🔴 Upstash Redis<br/>Rate Limiting"]
+        OA["🤖 OpenAI<br/>Assistants API"]
+    end
+
+    U -->|"Assina"| HB
+    HB -->|"Webhook pagamento"| API
+    U -->|"Acessa site"| CL
+    CL -->|"Webhook user.created"| API
+    CL -->|"JWT Token"| MW
+    MW -->|"Sessão válida"| FE
+    FE -->|"POST /api/chat"| API
+    API -->|"Verifica assinatura"| SB
+    API -->|"Rate limit"| RD
+    API -->|"Envia mensagem"| OA
+    API -->|"Salva thread"| SB
+```
+
+---
+
+## Conclusão: Onde Cada Dado Vive
+
+| Dado | Quem gerencia | Onde fica |
+|------|--------------|-----------|
+| Senha do usuário | **Clerk** | Servidores do Clerk (nunca no seu banco) |
+| Sessão/Token JWT | **Clerk** | Cookie HttpOnly no navegador |
+| Status da assinatura | **Hubla → Webhook → Supabase** | Tabela `users.subscription_status` |
+| Plano contratado | **Hubla → Webhook → Supabase** | Tabela `users.plan_id` |
+| Contador de mensagens | **Seu backend** | Tabela `users.monthly_message_count` |
+| Histórico de conversa | **OpenAI** | Threads na API da OpenAI (só guardamos o ID) |
+| Dados de pagamento | **Hubla** | Nunca no Jing IA (RN-04) |
+
+> [!NOTE]
+> O **Supabase é a "fonte única de verdade"** (Single Source of Truth). Quando o backend precisa decidir se o usuário pode ou não acessar algo, ele consulta **apenas** o Supabase. Nunca a Hubla, nunca o Clerk diretamente.
