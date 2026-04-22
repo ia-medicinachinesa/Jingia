@@ -40,12 +40,14 @@ export interface HublaInvoice {
   currency?: string
   createdAt?: string
   paidAt?: string
+  payer?: HublaUser
 }
 
 export interface HublaSubscription {
   id: string
   sellerId: string
   payerId: string
+  payer?: HublaUser
   status: 'active' | 'inactive' | 'expired' | 'past_due'
   type: string
   billingCycleMonths: number
@@ -134,7 +136,7 @@ export function extractBuyerEmail(payload: HublaWebhookPayload): string | null {
     data.user?.email ??
     data.member?.email ??
     data.subscription?.payer?.email ?? 
-    data.invoice?.payer?.email ??
+    (data.invoice as HublaInvoice | undefined)?.payer?.email ??
     null
   )
 }
