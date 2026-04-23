@@ -13,7 +13,7 @@ export default function UsageBar({ used, limit, showLabel = false, className }: 
   const barColor =
     percentage >= 90 ? 'bg-red-500' :
     percentage >= 70 ? 'bg-amber-400' :
-    'bg-brand-teal'
+    'bg-brand-preto dark:bg-brand-offwhite'
 
   return (
     <div className={cn('w-full', className)}>

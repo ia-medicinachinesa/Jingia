@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
 import { LayoutDashboard, User, Settings, LogOut, History, X } from 'lucide-react'
@@ -30,11 +31,15 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
   const sidebarContent = (
     <>
       <div className="p-6 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
-          <div className="w-9 h-9 rounded-xl bg-brand-teal flex items-center justify-center text-white font-bold text-xl group-hover:bg-brand-blue transition-colors shadow-sm">
-            J
-          </div>
-          <span className="text-2xl font-bold text-brand-blue tracking-tight group-hover:text-brand-teal transition-colors">jing IA</span>
+        <Link href="/dashboard" className="flex items-center gap-3 group px-2" onClick={onClose}>
+          <Image 
+            src="/images/logos/LogoEscrita.png" 
+            alt="Jing IA" 
+            width={120} 
+            height={40} 
+            className="object-contain group-hover:opacity-80 transition-opacity"
+            priority
+          />
         </Link>
         {/* Botão fechar — só visível no mobile */}
         {onClose && (
@@ -63,11 +68,11 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                 isActive 
-                  ? 'bg-brand-light dark:bg-brand-teal/10 text-brand-blue dark:text-brand-teal shadow-sm' 
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                  ? 'bg-brand-preto dark:bg-gray-800 text-brand-offwhite shadow-sm' 
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-brand-preto dark:hover:text-gray-100'
               )}
             >
-              <Icon size={18} className={isActive ? 'text-brand-teal' : 'text-gray-400'} />
+              <Icon size={18} className={isActive ? 'text-brand-offwhite' : 'text-brand-sombra'} />
               {link.name}
             </Link>
           )

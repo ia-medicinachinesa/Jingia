@@ -209,7 +209,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
 
       {/* Header do assistente */}
       <div className="flex items-center gap-4 p-5 md:p-6 border-b border-gray-100 dark:border-white/10 bg-gray-50/30 dark:bg-gray-800/30">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal/20 to-brand-blue/20 flex items-center justify-center text-brand-blue dark:text-brand-teal shadow-sm shrink-0">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center text-brand-preto dark:text-brand-offwhite shadow-sm shrink-0">
           <AssistantIcon size={24} strokeWidth={1.5} />
         </div>
         <div>
@@ -235,9 +235,9 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
         {isLoadingHistory && (
           <div className="text-center py-16 flex flex-col items-center justify-center">
             <div className="flex gap-1.5 items-center p-4 rounded-2xl bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 shadow-sm mb-4">
-              <span className="w-2.5 h-2.5 bg-brand-teal rounded-full animate-pulse [animation-delay:0ms]" />
-              <span className="w-2.5 h-2.5 bg-brand-teal rounded-full animate-pulse [animation-delay:150ms]" />
-              <span className="w-2.5 h-2.5 bg-brand-teal rounded-full animate-pulse [animation-delay:300ms]" />
+              <span className="w-2.5 h-2.5 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:0ms]" />
+              <span className="w-2.5 h-2.5 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:150ms]" />
+              <span className="w-2.5 h-2.5 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:300ms]" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 font-medium">Carregando conversa...</p>
           </div>
@@ -247,10 +247,10 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
         {!isLoadingHistory && messages.length === 0 && (
           <div className="text-center text-gray-400 dark:text-gray-500 py-16 flex flex-col items-center justify-center">
             <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mb-4 border border-gray-100 dark:border-white/5">
-               <AssistantIcon size={32} strokeWidth={1.5} className="text-brand-teal opacity-50" />
+               <AssistantIcon size={32} strokeWidth={1.5} className="text-brand-aco opacity-50" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 font-medium">
-              Olá! Sou o especialista em <strong className="text-brand-blue dark:text-brand-teal">{assistant.name}</strong>.
+              Olá! Sou o especialista em <strong className="text-brand-preto dark:text-brand-offwhite">{assistant.name}</strong>.
             </p>
             <p className="text-sm mt-1">Como posso te ajudar hoje na sua prática clínica?</p>
           </div>
@@ -265,9 +265,9 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           {isLoading && (
             <div className="flex items-center gap-3 text-gray-400 dark:text-gray-500 text-sm p-2 animate-fade-in-up">
               <div className="flex gap-1.5 items-center p-3 rounded-2xl bg-gray-50 dark:bg-gray-800 rounded-bl-sm border border-gray-100 dark:border-gray-700 shadow-sm">
-                <span className="w-2 h-2 bg-brand-teal rounded-full animate-pulse [animation-delay:0ms]" />
-                <span className="w-2 h-2 bg-brand-teal rounded-full animate-pulse [animation-delay:150ms]" />
-                <span className="w-2 h-2 bg-brand-teal rounded-full animate-pulse [animation-delay:300ms]" />
+                <span className="w-2 h-2 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:0ms]" />
+                <span className="w-2 h-2 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:150ms]" />
+                <span className="w-2 h-2 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:300ms]" />
               </div>
               <span className="animate-pulse">Pensando...</span>
             </div>
@@ -290,7 +290,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             maxLength={4000}
             className={cn(
               'flex-1 resize-none rounded-2xl border border-gray-200 dark:border-gray-600 px-5 py-4 text-sm bg-gray-50/50 dark:bg-gray-700 dark:text-gray-100',
-              'focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white dark:focus:bg-gray-600 transition-all shadow-sm',
+              'focus:outline-none focus:ring-2 focus:ring-brand-preto dark:focus:ring-brand-offwhite focus:border-brand-preto dark:focus:border-brand-offwhite focus:bg-white dark:focus:bg-gray-600 transition-all shadow-sm',
               'disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:text-gray-400 dark:disabled:text-gray-500',
               'min-h-[54px] max-h-[160px] overflow-y-auto placeholder:text-gray-400 dark:placeholder:text-gray-500'
             )}
@@ -306,7 +306,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             disabled={isLoading || isAtLimit || !input.trim()}
             className={cn(
               'h-[54px] w-[54px] flex items-center justify-center rounded-2xl transition-all shrink-0 shadow-sm',
-              'bg-brand-blue text-white hover:bg-brand-teal',
+              'bg-brand-preto text-white hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600',
               'disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none'
             )}
             aria-label="Enviar mensagem"

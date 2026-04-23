@@ -18,22 +18,22 @@ export default function UpgradeCTA({ currentPlan, className }: Props) {
   if (!nextPlan) return null // Premium já está no topo
 
   return (
-    <div className={cn('bg-brand-light border border-brand-medium rounded-xl p-4', className)}>
+    <div className={cn('bg-brand-offwhite border border-brand-aco/30 dark:bg-gray-800/50 dark:border-gray-700 rounded-xl p-4', className)}>
       <div className="flex items-center gap-2 mb-2">
-        <Zap size={16} className="text-brand-teal" />
-        <span className="text-sm font-semibold text-brand-blue">
+        <Zap size={16} className="text-brand-preto dark:text-brand-offwhite" />
+        <span className="text-sm font-semibold text-brand-preto dark:text-gray-200">
           Limite de mensagens atingido
         </span>
       </div>
-      <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+      <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
         Faça upgrade para o plano{' '}
-        <strong className="capitalize text-brand-teal">{nextPlan}</strong>{' '}
+        <strong className="capitalize text-brand-preto dark:text-white">{nextPlan}</strong>{' '}
         e continue usando seus assistentes sem interrupção.
       </p>
       {/* Aqui apontamos para a Hubla caso os links estejam na /planos */}
       <Link
-        href="/planos"
-        className="inline-block text-xs font-semibold bg-brand-teal text-white px-4 py-2 rounded-lg hover:bg-brand-blue transition-colors shadow-sm"
+        href="/dashboard/planos"
+        className="inline-block text-xs font-semibold bg-brand-preto dark:bg-brand-offwhite dark:text-brand-preto text-white px-4 py-2 rounded-lg hover:bg-black transition-colors shadow-sm"
       >
         Ver planos e assinar →
       </Link>

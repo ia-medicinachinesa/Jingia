@@ -56,7 +56,7 @@ export default async function PerfilPage() {
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
               Para solicitar exclusão dos seus dados, entre em contato pelo e-mail{' '}
-              <a href="mailto:privacidade@jing.com.br" className="text-brand-teal font-medium hover:underline">
+              <a href="mailto:privacidade@jing.com.br" className="text-brand-preto dark:text-brand-offwhite font-medium hover:underline">
                 privacidade@jing.com.br
               </a>
               .
@@ -67,7 +67,7 @@ export default async function PerfilPage() {
         <div className="space-y-6">
           {/* Assinatura */}
           <section className="bg-white/70 dark:bg-gray-800/40 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-white/10 p-6 shadow-sm">
-            <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest mb-6">
+            <h2 className="text-xs font-bold text-brand-preto dark:text-brand-offwhite uppercase tracking-widest mb-6">
               Plano Atual
             </h2>
             <div className="flex flex-col items-center text-center p-4 bg-gray-50/50 dark:bg-gray-900/20 rounded-2xl border border-gray-100 dark:border-white/5 mb-6">
@@ -79,7 +79,7 @@ export default async function PerfilPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Mensagens do Mês</span>
-                <span className="text-brand-teal font-bold">{subscription.monthlyMessageCount} / {subscription.messageLimit}</span>
+                <span className="text-brand-preto dark:text-white font-bold">{subscription.monthlyMessageCount} / {subscription.messageLimit}</span>
               </div>
               <UsageBar
                 used={subscription.monthlyMessageCount}
@@ -109,7 +109,7 @@ export default async function PerfilPage() {
                   <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalConversas}</span>
                   <span className="text-[10px] text-gray-500 uppercase font-bold">Total de Casos</span>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-brand-teal/10 flex items-center justify-center text-brand-teal">
+                <div className="w-10 h-10 rounded-xl bg-brand-aco/20 flex items-center justify-center text-brand-preto dark:text-brand-offwhite">
                    <Briefcase size={20} />
                 </div>
               </div>
@@ -118,7 +118,7 @@ export default async function PerfilPage() {
                   <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalMensagens}</span>
                   <span className="text-[10px] text-gray-500 uppercase font-bold">Mensagens Trocadas</span>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-brand-sombra">
                   <User size={20} />
                 </div>
               </div>

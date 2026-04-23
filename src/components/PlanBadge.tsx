@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils'
 
 const BADGE_STYLES: Record<string, string> = {
-  essencial:    'bg-slate-100   text-slate-600',
-  profissional: 'bg-teal-100    text-teal-700',
+  essencial:    'bg-brand-aco/20 dark:bg-gray-800 text-brand-sombra dark:text-gray-400',
+  profissional: 'bg-brand-preto dark:bg-gray-700 text-brand-offwhite shadow-sm',
 }
 
 const BADGE_LABELS: Record<string, string> = {

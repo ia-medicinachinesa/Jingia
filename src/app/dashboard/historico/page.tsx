@@ -142,13 +142,13 @@ export default function HistoricoPage() {
             placeholder="Buscar por título da conversa..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-teal focus:border-brand-teal bg-white dark:bg-gray-800 dark:border-gray-700 transition-all text-sm"
+            className="w-full pl-11 pr-4 py-2.5 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-preto dark:focus:ring-brand-offwhite focus:border-brand-preto bg-white dark:bg-gray-800 dark:border-gray-700 transition-all text-sm"
           />
         </div>
         
         <div className="w-full sm:w-60">
           <Select value={selectedAssistant} onValueChange={setSelectedAssistant}>
-            <SelectTrigger className="w-full h-11 rounded-2xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-brand-teal shadow-none">
+            <SelectTrigger className="w-full h-11 rounded-2xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-brand-preto dark:focus:ring-brand-offwhite shadow-none">
               <SelectValue placeholder="Filtrar por assistente" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl">
@@ -186,10 +186,10 @@ export default function HistoricoPage() {
             return (
               <div
                 key={thread.id}
-                className="group relative bg-white/70 dark:bg-gray-800/40 backdrop-blur-sm border border-gray-100 dark:border-white/10 rounded-2xl p-4 md:p-5 hover:border-brand-teal/50 dark:hover:border-brand-teal/50 hover:shadow-xl dark:hover:shadow-brand-teal/5 transition-all animate-fade-in-up"
+                className="group relative bg-white/70 dark:bg-gray-800/40 backdrop-blur-sm border border-gray-100 dark:border-white/10 rounded-2xl p-4 md:p-5 hover:border-brand-sombra/50 hover:shadow-xl transition-all animate-fade-in-up"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-brand-teal/10 to-brand-blue/10 dark:from-brand-teal/20 dark:to-brand-blue/20 rounded-xl flex items-center justify-center text-brand-blue dark:text-brand-teal shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                  <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl flex items-center justify-center text-brand-preto dark:text-brand-offwhite shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform">
                     <AssistantIcon size={24} strokeWidth={1.5} />
                   </div>
                   
@@ -198,13 +198,13 @@ export default function HistoricoPage() {
                     className="flex-1 min-w-0"
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-brand-teal transition-colors">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-brand-preto dark:group-hover:text-brand-offwhite transition-colors">
                         {thread.title || 'Conversa sem título'}
                       </h3>
                     </div>
                     
                     <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-gray-500 dark:text-gray-400">
-                      <span className="flex items-center gap-1.5 capitalize text-brand-teal font-medium">
+                      <span className="flex items-center gap-1.5 capitalize text-brand-preto dark:text-brand-offwhite font-medium">
                         {assistant?.name || 'Assistente'}
                       </span>
                       <span className="flex items-center gap-1.5">

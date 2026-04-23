@@ -44,7 +44,7 @@ export default function DashboardHeader({
         <ThemeToggle />
         
         {/* Avatar placeholder — será substituído por UserButton do Clerk quando configurado */}
-        <div className="w-9 h-9 rounded-full bg-brand-teal flex items-center justify-center text-white font-bold text-sm shadow-sm border-2 border-brand-light dark:border-brand-teal/30">
+        <div className="w-9 h-9 rounded-full bg-brand-preto flex items-center justify-center text-white font-bold text-sm shadow-sm border-2 border-brand-offwhite dark:border-gray-700">
           {userName.charAt(0).toUpperCase()}
         </div>
       </div>

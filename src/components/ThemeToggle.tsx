@@ -32,7 +32,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-teal"
+      className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-preto"
       aria-label={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
       title={isDark ? 'Modo claro' : 'Modo escuro'}
     >

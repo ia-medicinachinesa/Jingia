@@ -39,18 +39,18 @@ export default function AssistantCard({ assistant, planId }: Props) {
         !isConfigured
           ? 'border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-gray-950/40 opacity-60 cursor-default'
           : hasAccess
-            ? 'border-white/60 dark:border-white/10 bg-white/70 dark:bg-gray-800/40 hover:border-brand-teal/50 dark:hover:border-brand-teal/50 hover:shadow-xl dark:hover:shadow-brand-teal/5 hover:-translate-y-1 cursor-pointer'
+            ? 'border-white/60 dark:border-white/10 bg-white/70 dark:bg-gray-800/40 hover:border-brand-sombra/50 dark:hover:border-brand-sombra/50 hover:shadow-xl hover:-translate-y-1 cursor-pointer'
             : 'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-gray-800/20 opacity-70 cursor-not-allowed'
       )}
     >
       {/* Background Decorativo sutil */}
-      <div className="absolute -right-4 -top-4 w-24 h-24 bg-brand-teal/5 rounded-full blur-3xl group-hover:bg-brand-teal/10 transition-colors" />
+      <div className="absolute -right-4 -top-4 w-24 h-24 bg-brand-aco/10 rounded-full blur-3xl group-hover:bg-brand-aco/20 transition-colors" />
 
       <div className="flex items-start justify-between mb-6">
         <div className={cn(
           "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm",
           hasAccess 
-            ? "bg-gradient-to-br from-brand-teal/20 to-brand-blue/20 text-brand-blue dark:text-brand-teal group-hover:scale-110 group-hover:rotate-3"
+            ? "bg-gradient-to-br from-gray-100 to-gray-200 text-brand-preto dark:bg-gray-800 dark:from-gray-800 dark:to-gray-700 dark:text-brand-offwhite group-hover:scale-110 group-hover:rotate-3"
             : "bg-gray-100 dark:bg-gray-800 text-gray-400"
         )}>
           <AssistantIcon size={24} strokeWidth={1.5} />
@@ -69,7 +69,7 @@ export default function AssistantCard({ assistant, planId }: Props) {
         )}
       </div>
 
-      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 truncate group-hover:text-brand-teal transition-colors">{assistant.name}</h3>
+      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 truncate group-hover:text-brand-preto dark:group-hover:text-brand-offwhite transition-colors">{assistant.name}</h3>
       <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed flex-1 line-clamp-3">
         {assistant.description}
       </p>
@@ -79,7 +79,7 @@ export default function AssistantCard({ assistant, planId }: Props) {
           Este assistente será ativado em breve
         </p>
       ) : !hasAccess && (
-        <p className="text-xs text-brand-teal mt-4 font-medium flex items-center justify-between">
+        <p className="text-xs text-brand-preto dark:text-brand-offwhite mt-4 font-medium flex items-center justify-between">
           Disponível no {requiredPlanName}
           <span className="text-lg">→</span>
         </p>
@@ -91,7 +91,7 @@ export default function AssistantCard({ assistant, planId }: Props) {
   if (!isConfigured || !hasAccess) return card
 
   return (
-    <Link href={`/dashboard/chat/${assistant.id}`} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-brand-teal rounded-2xl">
+    <Link href={`/dashboard/chat/${assistant.id}`} className="block h-full outline-none focus-visible:ring-2 focus-visible:ring-brand-preto dark:focus-visible:ring-brand-offwhite rounded-2xl">
       {card}
     </Link>
   )

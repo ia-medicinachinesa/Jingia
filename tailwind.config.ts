@@ -11,15 +11,15 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          blue:   '#1A6B8A',
-          teal:   '#2E9E8F',
-          light:  '#E8F4F8',
-          medium: '#B8DDE8',
+          preto:    '#262626',
+          aco:      '#B3B3B3',
+          sombra:   '#7F7F7F',
+          offwhite: '#F2F2F2',
         },
         plan: {
-          essencial:    '#78909C',
-          profissional: '#2E9E8F',
-          premium:      '#1A6B8A',
+          essencial:    '#7F7F7F', // Cinza Sombra para básico
+          profissional: '#262626', // Preto Suave para pro
+          premium:      '#B3B3B3', // Apenas caso use
         },
         background: "var(--background)",
         foreground: "var(--foreground)",

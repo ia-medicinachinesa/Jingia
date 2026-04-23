@@ -33,7 +33,7 @@ export default async function DashboardPage() {
       {categories.map(category => (
         <section key={category} className="mb-12">
           <div className="flex items-center gap-4 mb-6">
-            <h2 className="text-sm font-semibold text-brand-teal uppercase tracking-widest bg-brand-light px-4 py-1.5 rounded-full inline-block">
+            <h2 className="text-sm font-semibold text-brand-preto dark:text-brand-offwhite uppercase tracking-widest bg-brand-aco/10 dark:bg-brand-sombra/20 px-4 py-1.5 rounded-full inline-block">
               {category}
             </h2>
             <div className="h-px bg-gray-200 flex-1"></div>
