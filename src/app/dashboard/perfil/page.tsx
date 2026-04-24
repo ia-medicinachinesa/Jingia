@@ -24,7 +24,7 @@ export default async function PerfilPage() {
   const dbUser = await db.getUserByClerkId(clerkId)
   
   // Metadados do Clerk
-  const metadata = user.publicMetadata as { crm?: string; specialty?: string }
+  const metadata = user.publicMetadata as { profession?: string; level?: string; specialty?: string }
   
   // Estatísticas de Uso
   const userThreads = dbUser ? await threads.listByUser(dbUser.id) : []
@@ -41,8 +41,9 @@ export default async function PerfilPage() {
        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           <ProfileForm 
-            initialCrm={dbUser?.crm || metadata.crm || ''} 
-            initialSpecialty={dbUser?.specialty || metadata.specialty || ''} 
+            initialProfession={metadata.profession || dbUser?.crm?.split(' | ')[0] || ''}
+            initialLevel={metadata.level || dbUser?.crm?.split(' | ')[1] || 'Acupunturista'}
+            initialSpecialty={metadata.specialty || dbUser?.specialty || ''} 
           />
           
           {/* Aviso LGPD */}

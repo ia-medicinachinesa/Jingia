@@ -32,7 +32,7 @@ export const ASSISTANTS: AssistantConfig[] = [
   {
     id:          'ASS-03',
     name:        'YNSA',
-    description: 'Yamamoto New Scalp Acupuncture — protocolos e pontos.',
+    description: 'Yamamoto New Scalp Acupuncture — pontos.',
     icon:        '🎯',
     category:    'Técnicas Especializadas',
     plans:       ['profissional'],
@@ -41,7 +41,7 @@ export const ASSISTANTS: AssistantConfig[] = [
   {
     id:          'ASS-04',
     name:        'Auriculoterapia',
-    description: 'Mapeamento auricular, protocolos e seleção de pontos.',
+    description: 'Mapeamento auricular e seleção de pontos.',
     icon:        '👂',
     category:    'Técnicas Especializadas',
     plans:       ['profissional'],
@@ -50,7 +50,7 @@ export const ASSISTANTS: AssistantConfig[] = [
   {
     id:          'ASS-05',
     name:        'Fotobiomodulação',
-    description: 'Protocolos de laser e LED terapêutico para acupunturistas.',
+    description: 'Laser e LED terapêutico para acupunturistas.',
     icon:        '💡',
     category:    'Técnicas Especializadas',
     plans:       ['profissional'],

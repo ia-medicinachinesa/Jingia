@@ -8,12 +8,14 @@ import { useClerk } from '@clerk/nextjs'
 import Link from 'next/link'
 
 interface ProfileFormProps {
-  initialCrm: string
+  initialProfession: string
+  initialLevel: string
   initialSpecialty: string
 }
 
-export default function ProfileForm({ initialCrm, initialSpecialty }: ProfileFormProps) {
-  const [crm, setCrm] = useState(initialCrm)
+export default function ProfileForm({ initialProfession, initialLevel, initialSpecialty }: ProfileFormProps) {
+  const [profession, setProfession] = useState(initialProfession)
+  const [level, setLevel] = useState(initialLevel)
   const [specialty, setSpecialty] = useState(initialSpecialty)
   const [isSaving, setIsSaving] = useState(false)
   const { openUserProfile } = useClerk()
@@ -21,7 +23,7 @@ export default function ProfileForm({ initialCrm, initialSpecialty }: ProfileFor
   async function handleSave() {
     setIsSaving(true)
     try {
-      const res = await updateProfileMetadata({ crm, specialty })
+      const res = await updateProfileMetadata({ profession, level, specialty })
       if (res.success) {
         toast.success('Perfil atualizado com sucesso!')
       } else {
@@ -49,22 +51,34 @@ export default function ProfileForm({ initialCrm, initialSpecialty }: ProfileFor
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 ml-1">Registro Profissional (CRM/CRT)</label>
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 ml-1">Profissão</label>
             <input
               type="text"
-              value={crm}
-              onChange={(e) => setCrm(e.target.value)}
-              placeholder="Ex: 12345/SP"
+              value={profession}
+              onChange={(e) => setProfession(e.target.value)}
+              placeholder="Ex: Enfermeiro, Médico, Biólogo"
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-teal transition-all text-sm"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 ml-1">Especialidade Principal</label>
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 ml-1">Nível de Atuação</label>
+            <select
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-teal transition-all text-sm appearance-none cursor-pointer"
+            >
+              <option value="Acupunturista">Acupunturista</option>
+              <option value="Estudante de Acupuntura">Estudante de Acupuntura</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 ml-1">Área de interesse na Acupuntura</label>
             <input
               type="text"
               value={specialty}
               onChange={(e) => setSpecialty(e.target.value)}
-              placeholder="Ex: Acupuntura Clínica"
+              placeholder="Ex: Dor, Saúde da mulher, Idoso, Fertilidade, Esportiva"
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-teal transition-all text-sm"
             />
           </div>

@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 
 export async function updateProfileMetadata(data: {
-  crm?: string
+  profession?: string
+  level?: string
   specialty?: string
 }) {
   const { userId } = await auth()
@@ -24,14 +25,18 @@ export async function updateProfileMetadata(data: {
     // 1. Atualizar Clerk (Cache Rápido)
     await client.users.updateUser(userId, {
       publicMetadata: {
-        crm: data.crm,
+        profession: data.profession,
+        level: data.level,
         specialty: data.specialty,
+        crm: data.profession, // Retrocompatibilidade
       },
     })
 
     // 2. Atualizar Supabase (Fonte da Verdade)
+    // Opcional: concatenar para caber no campo CRM atual
+    const combinedProfession = `${data.profession || ''} | ${data.level || ''}`
     await db.upsertUser(userId, user.emailAddresses[0].emailAddress, {
-      crm: data.crm,
+      crm: combinedProfession,
       specialty: data.specialty,
     })
 
