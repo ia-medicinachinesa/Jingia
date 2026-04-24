@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils'
 
 // Substituir futuramente pelos links de checkout da Hubla
 const CHECKOUT_URLS = {
-  essencial:    process.env.NEXT_PUBLIC_CHECKOUT_ESSENCIAL    ?? '#',
-  profissional: process.env.NEXT_PUBLIC_CHECKOUT_PROFISSIONAL ?? '#',
+  essencial:    process.env.NEXT_PUBLIC_CHECKOUT_ESSENCIAL    ?? 'https://pay.hub.la/CtS4aDPpPQjbTmnVnwhh',
+  profissional: process.env.NEXT_PUBLIC_CHECKOUT_PROFISSIONAL ?? 'https://pay.hub.la/FRqufWE8Mgf9cmCEFDLq',
 }
 
 export default function PlanosPage() {
