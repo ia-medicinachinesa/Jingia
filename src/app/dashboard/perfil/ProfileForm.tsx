@@ -41,10 +41,10 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
       {/* Dados Profissionais */}
       <section className="bg-white/70 dark:bg-gray-800/40 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-white/10 p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
-          <div className="p-2 rounded-lg bg-brand-teal/10 text-brand-teal">
+          <div className="p-2 rounded-lg bg-brand-aco/20 text-brand-preto dark:text-brand-offwhite">
             <Stethoscope size={18} />
           </div>
-          <h2 className="text-xs font-bold text-brand-teal uppercase tracking-widest">
+          <h2 className="text-xs font-bold text-brand-preto dark:text-brand-offwhite uppercase tracking-widest">
             Dados Profissionais
           </h2>
         </div>
@@ -57,7 +57,7 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
               value={profession}
               onChange={(e) => setProfession(e.target.value)}
               placeholder="Ex: Enfermeiro, Médico, Biólogo"
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-teal transition-all text-sm"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-preto dark:focus:ring-brand-sombra transition-all text-sm"
             />
           </div>
           <div className="space-y-2">
@@ -65,7 +65,7 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-teal transition-all text-sm appearance-none cursor-pointer"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-preto dark:focus:ring-brand-sombra transition-all text-sm appearance-none cursor-pointer"
             >
               <option value="Acupunturista">Acupunturista</option>
               <option value="Estudante de Acupuntura">Estudante de Acupuntura</option>
@@ -79,7 +79,7 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
               value={specialty}
               onChange={(e) => setSpecialty(e.target.value)}
               placeholder="Ex: Dor, Saúde da mulher, Idoso, Fertilidade, Esportiva"
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-teal transition-all text-sm"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50/50 dark:bg-gray-900/50 focus:outline-none focus:ring-2 focus:ring-brand-preto dark:focus:ring-brand-sombra transition-all text-sm"
             />
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-2.5 bg-brand-teal text-white rounded-xl font-bold text-sm hover:bg-brand-blue transition-all shadow-md disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 bg-brand-preto text-white dark:bg-brand-offwhite dark:text-brand-preto rounded-xl font-bold text-sm hover:opacity-80 active:scale-95 transition-all shadow-md disabled:opacity-50"
           >
             {isSaving ? (
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -104,10 +104,10 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <section className="bg-white/70 dark:bg-gray-800/40 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-white/10 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+            <div className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-brand-preto dark:text-brand-offwhite">
               <ShieldCheck size={18} />
             </div>
-            <h2 className="text-xs font-bold text-blue-500 uppercase tracking-widest">
+            <h2 className="text-xs font-bold text-brand-preto dark:text-brand-offwhite uppercase tracking-widest">
               Segurança
             </h2>
           </div>
@@ -119,16 +119,16 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
             className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900/60 rounded-xl transition-all group"
           >
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Configurações de Conta</span>
-            <ExternalLink size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+            <ExternalLink size={16} className="text-gray-400 group-hover:text-brand-preto dark:group-hover:text-brand-offwhite transition-colors" />
           </button>
         </section>
 
         <section className="bg-white/70 dark:bg-gray-800/40 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-white/10 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500">
+            <div className="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-brand-preto dark:text-brand-offwhite">
               <CreditCard size={18} />
             </div>
-            <h2 className="text-xs font-bold text-orange-500 uppercase tracking-widest">
+            <h2 className="text-xs font-bold text-brand-preto dark:text-brand-offwhite uppercase tracking-widest">
               Assinatura
             </h2>
           </div>
@@ -140,7 +140,7 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
             className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900/60 rounded-xl transition-all group mb-2"
           >
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Alterar Plano</span>
-            <ExternalLink size={16} className="text-gray-400 group-hover:text-orange-500 transition-colors" />
+            <ExternalLink size={16} className="text-gray-400 group-hover:text-brand-preto dark:group-hover:text-brand-offwhite transition-colors" />
           </Link>
           <a
             href="#"
@@ -148,7 +148,7 @@ export default function ProfileForm({ initialProfession, initialLevel, initialSp
             className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900/60 rounded-xl transition-all group"
           >
             <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Portal de Pagamentos</span>
-            <ExternalLink size={16} className="text-gray-400 group-hover:text-orange-500 transition-colors" />
+            <ExternalLink size={16} className="text-gray-400 group-hover:text-brand-preto dark:group-hover:text-brand-offwhite transition-colors" />
           </a>
         </section>
       </div>
