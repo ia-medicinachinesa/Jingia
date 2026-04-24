@@ -56,17 +56,25 @@ export default function AssistantCard({ assistant, planId }: Props) {
           <AssistantIcon size={24} strokeWidth={1.5} />
         </div>
         
-        {!isConfigured ? (
-          <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 rounded-full border border-amber-200/50 dark:border-amber-800/50">
-            <Clock size={12} strokeWidth={2.5} />
-            Em breve
-          </span>
-        ) : !hasAccess && (
-          <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2.5 py-1 rounded-full shadow-inner">
-            <Lock size={12} strokeWidth={2.5} />
-            {requiredPlanName}
-          </span>
-        )}
+        <div className="flex gap-2">
+          {requiredPlan === 'profissional' && (
+            <span className="flex items-center px-2 py-1 text-[10px] uppercase font-black tracking-widest text-white bg-brand-preto dark:bg-brand-offwhite dark:text-brand-preto rounded-md shadow-sm">
+              PRO
+            </span>
+          )}
+
+          {!isConfigured ? (
+            <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
+              <Clock size={12} strokeWidth={2.5} />
+              Em breve
+            </span>
+          ) : !hasAccess ? (
+            <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2.5 py-1 rounded-lg shadow-inner">
+              <Lock size={12} strokeWidth={2.5} />
+              Bloqueado
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 truncate group-hover:text-brand-preto dark:group-hover:text-brand-offwhite transition-colors">{assistant.name}</h3>
