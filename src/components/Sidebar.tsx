@@ -30,21 +30,21 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
 
   const sidebarContent = (
     <>
-      <div className="p-6 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-3 group px-2" onClick={onClose}>
-          <div className="relative w-[180px] h-[60px]">
+      <div className="p-4 flex items-center justify-between">
+        <Link href="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
+          <div className="relative w-[200px] h-[100px]">
             <Image
               src="/images/logos/LogoEscrita.png"
               alt="Jing IA"
               fill
-              className="object-contain group-hover:opacity-80 transition-opacity dark:hidden"
+              className="object-contain object-left group-hover:opacity-80 transition-opacity dark:hidden"
               priority
             />
             <Image
               src="/images/logos/LogoDarkMode2.svg"
               alt="Jing IA Dark"
               fill
-              className="object-contain group-hover:opacity-80 transition-opacity hidden dark:block"
+              className="object-contain object-left group-hover:opacity-80 transition-opacity hidden dark:block"
               priority
             />
           </div>
