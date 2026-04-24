@@ -32,14 +32,22 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
     <>
       <div className="p-6 flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-3 group px-2" onClick={onClose}>
-          <Image 
-            src="/images/logos/LogoEscrita.png" 
-            alt="Jing IA" 
-            width={120} 
-            height={40} 
-            className="object-contain group-hover:opacity-80 transition-opacity"
-            priority
-          />
+          <div className="relative w-[140px] h-[48px]">
+            <Image 
+              src="/images/logos/LogoEscrita.png" 
+              alt="Jing IA" 
+              fill
+              className="object-contain group-hover:opacity-80 transition-opacity dark:hidden"
+              priority
+            />
+            <Image 
+              src="/images/logos/LogoDarkMode.svg" 
+              alt="Jing IA Dark" 
+              fill
+              className="object-contain group-hover:opacity-80 transition-opacity hidden dark:block"
+              priority
+            />
+          </div>
         </Link>
         {/* Botão fechar — só visível no mobile */}
         {onClose && (
