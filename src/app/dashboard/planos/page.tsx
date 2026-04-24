@@ -27,7 +27,7 @@ export default function PlanosPage() {
           <div
             key={planId}
             className={cn(
-              'rounded-3xl border p-8 flex flex-col transition-all relative overflow-hidden',
+              'rounded-3xl border p-8 flex flex-col transition-all relative',
               'bg-white/70 dark:bg-gray-800/40 backdrop-blur-md',
               planId === 'profissional'
                 ? 'border-brand-preto ring-4 ring-brand-aco/30 dark:ring-gray-700 z-10'

@@ -8,7 +8,7 @@ export type PlanId = keyof typeof PLAN_LIMITS
 export const PLAN_DISPLAY = {
   essencial: {
     name:  'Essencial',
-    price: 'R$ 29,90/mês',
+    price: 'R$ 39,90/mês',
     color: 'plan-essencial',
     description: 'Plano de entrada para uso básico do raciocínio clínico',
     features: [
@@ -18,7 +18,7 @@ export const PLAN_DISPLAY = {
   },
   profissional: {
     name:  'Profissional',
-    price: 'R$ 79,90/mês',
+    price: 'R$ 89,90/mês',
     color: 'plan-profissional',
     description: 'Acesso completo a todas as IAs e módulos',
     features: [
