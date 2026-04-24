@@ -32,17 +32,17 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
     <>
       <div className="p-6 flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-3 group px-2" onClick={onClose}>
-          <div className="relative w-[140px] h-[48px]">
-            <Image 
-              src="/images/logos/LogoEscrita.png" 
-              alt="Jing IA" 
+          <div className="relative w-[180px] h-[60px]">
+            <Image
+              src="/images/logos/LogoEscrita.png"
+              alt="Jing IA"
               fill
               className="object-contain group-hover:opacity-80 transition-opacity dark:hidden"
               priority
             />
-            <Image 
-              src="/images/logos/LogoDarkMode.svg" 
-              alt="Jing IA Dark" 
+            <Image
+              src="/images/logos/LogoDarkMode2.svg"
+              alt="Jing IA Dark"
               fill
               className="object-contain group-hover:opacity-80 transition-opacity hidden dark:block"
               priority
@@ -67,7 +67,7 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
             pathname === link.href ||
             (pathname.startsWith('/dashboard/chat') && link.href === '/dashboard') ||
             (pathname.startsWith('/dashboard/historico') && link.href === '/dashboard/historico')
-          
+
           return (
             <Link
               key={link.href}
@@ -75,8 +75,8 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
               onClick={onClose}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                isActive 
-                  ? 'bg-brand-preto dark:bg-gray-800 text-brand-offwhite shadow-sm' 
+                isActive
+                  ? 'bg-brand-preto dark:bg-gray-800 text-brand-offwhite shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-brand-preto dark:hover:text-gray-100'
               )}
             >
@@ -94,7 +94,7 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
           </div>
           <PlanBadge planId={planId} />
         </div>
-        
+
         <button
           onClick={() => signOut({ redirectUrl: '/sign-in' })}
           className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
