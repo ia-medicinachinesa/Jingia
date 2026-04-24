@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Lock, Clock, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, LucideIcon } from 'lucide-react'
+import { Lock, Clock, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, Briefcase, LucideIcon } from 'lucide-react'
 import { AssistantConfig, canAccessAssistant } from '@/lib/assistants'
 import { PlanId, PLAN_DISPLAY } from '@/lib/plans'
 import { cn } from '@/lib/utils'
@@ -13,7 +13,8 @@ const ASSISTANT_ICONS: Record<string, LucideIcon> = {
   'ASS-05': Zap,
   'ASS-06': Activity,
   'ASS-07': BookOpen,
-  'ASS-08': Megaphone,
+  'ASS-08': Briefcase,
+  'ASS-09': Megaphone,
 }
 
 interface Props {

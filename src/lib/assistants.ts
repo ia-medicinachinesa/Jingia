@@ -77,11 +77,20 @@ export const ASSISTANTS: AssistantConfig[] = [
   {
     id:          'ASS-08',
     name:        'Consultor de Negócios para Acupunturistas',
-    description: 'Conteúdo, copywriting e crescimento para sua clínica.',
-    icon:        '📣',
+    description: 'Direcionamento estratégico e gestão para o crescimento da sua clínica.',
+    icon:        '🏢',
     category:    'Consultório e Marketing',
     plans:       ['profissional'],
     openaiId:    process.env.OPENAI_ASSISTANT_ID_ASS08 || 'asst_nTywh8x4trYbPRNwm05wQEc1',
+  },
+  {
+    id:          'ASS-09',
+    name:        'Social Media para Acupunturistas',
+    description: 'A IA que ajuda acupunturistas a criarem conteúdos estratégicos, fortalecerem autoridade e atraírem mais pacientes pelas redes sociais com ética e profissionalismo.',
+    icon:        '📱',
+    category:    'Consultório e Marketing',
+    plans:       ['profissional'],
+    openaiId:    process.env.OPENAI_ASSISTANT_ID_ASS09 || 'asst_0bEJ5gzO4YyvU9z0Vu0uTDBK',
   },
 ]
 
