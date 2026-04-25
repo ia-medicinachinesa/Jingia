@@ -152,9 +152,49 @@ export async function POST(req: NextRequest) {
       errorMessage = 'E-mail do comprador não encontrado no payload'
       console.warn(`[HUBLA WEBHOOK] ${errorMessage}`)
     } else if (!userFound) {
-      status = 'failed'
-      errorMessage = `Usuário não encontrado no banco para o e-mail: ${buyerEmail}`
-      console.warn(`[HUBLA WEBHOOK] ${errorMessage}`)
+      // ── Provisão automática: tenta criar o perfil do usuário ──
+      // Busca o clerk_user_id via API do Clerk para manter a integridade
+      try {
+        const clerkSecretKey = process.env.CLERK_SECRET_KEY
+        if (clerkSecretKey) {
+          const clerkRes = await fetch(
+            `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(buyerEmail)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${clerkSecretKey}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+
+          if (clerkRes.ok) {
+            const clerkUsers = await clerkRes.json()
+            if (Array.isArray(clerkUsers) && clerkUsers.length > 0) {
+              const clerkUserId = clerkUsers[0].id
+              // Cria o perfil no Supabase via upsert
+              const newUser = await db.upsertUser(clerkUserId, buyerEmail, {
+                subscription_status: 'inactive',
+                plan_id: null,
+                monthly_message_count: 0,
+              })
+              userId = newUser.id
+              userFound = true
+              console.info(`[HUBLA WEBHOOK] ✅ Perfil provisionado automaticamente para: ${buyerEmail}`)
+            }
+          }
+        }
+      } catch (provisionError) {
+        console.error('[HUBLA WEBHOOK] Erro ao provisionar perfil:', provisionError)
+      }
+
+      if (userFound) {
+        // Agora que o perfil existe, processa o evento normalmente
+        await processEvent(eventType, payload, buyerEmail)
+      } else {
+        status = 'failed'
+        errorMessage = `Usuário não encontrado no Clerk nem no Supabase para: ${buyerEmail}. Evento registrado para reconciliação.`
+        console.warn(`[HUBLA WEBHOOK] ${errorMessage}`)
+      }
     } else {
       await processEvent(eventType, payload, buyerEmail)
     }

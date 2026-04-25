@@ -23,7 +23,8 @@ export default async function DashboardLayout({
     const user = await currentUser()
     if (!user) redirect('/sign-in')
 
-    const subscription = await checkSubscription(user.id)
+    const primaryEmail = user.emailAddresses?.[0]?.emailAddress ?? ''
+    const subscription = await checkSubscription(user.id, primaryEmail)
     userName = user.firstName ?? 'Usuário'
     planId = (subscription.planId ?? 'essencial') as PlanId
     messagesUsed = subscription.monthlyMessageCount

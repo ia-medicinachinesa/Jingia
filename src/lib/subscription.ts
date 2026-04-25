@@ -9,18 +9,33 @@ export interface SubscriptionInfo {
   expiresAt: string | null
 }
 
-export async function checkSubscription(clerkUserId: string): Promise<SubscriptionInfo> {
-  const user = await db.getUserByClerkId(clerkUserId)
+export async function checkSubscription(clerkUserId: string, email?: string): Promise<SubscriptionInfo> {
+  let user = await db.getUserByClerkId(clerkUserId)
 
-  // Se o usuário não existe no banco (ainda não sincronizado pelo webhook)
-  // Retornamos como inativo, o que forçará o redirecionamento
+  // ── Provisão automática: se o usuário ainda não existe no Supabase,
+  //    cria o registro usando os dados do Clerk.
+  //    Isso garante que o webhook da Hubla sempre encontrará o usuário
+  //    pelo e-mail, mesmo que o pagamento ocorra antes do primeiro login.
+  if (!user && email) {
+    try {
+      user = await db.upsertUser(clerkUserId, email, {
+        subscription_status: 'inactive',
+        plan_id: null,
+        monthly_message_count: 0,
+      })
+      console.info(`[SUBSCRIPTION] Perfil provisionado automaticamente: ${email}`)
+    } catch (err) {
+      console.error('[SUBSCRIPTION] Erro ao provisionar perfil:', err)
+    }
+  }
+
   if (!user) {
     return {
       isActive: false,
       planId: null,
       monthlyMessageCount: 0,
       messageLimit: 0,
-      expiresAt: null
+      expiresAt: null,
     }
   }
 
