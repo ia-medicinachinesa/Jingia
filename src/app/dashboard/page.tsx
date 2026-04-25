@@ -17,6 +17,12 @@ export default async function DashboardPage() {
     if (!user) redirect('/sign-in')
 
     const subscription = await checkSubscription(user.id)
+    
+    // Bloqueia quem não comprou nada e tenta acessar a plataforma
+    if (!subscription.isActive) {
+      redirect('/dashboard/planos')
+    }
+
     planId = (subscription.planId ?? 'essencial') as PlanId
   }
 

@@ -25,8 +25,10 @@ export default async function ChatPage({ params, searchParams }: Props) {
 
   const subscription = await checkSubscription(userId)
   
-  // Em prod: Descomentar
-  // if (!subscription.isActive) redirect('/planos?reason=no-subscription')
+  // Bloqueia quem tentar acessar a URL do chat diretamente sem ter plano
+  if (!subscription.isActive) {
+    redirect('/dashboard/planos')
+  }
 
   const planId = (subscription.planId ?? 'essencial') as PlanId
   const assistant = ASSISTANTS.find(a => a.id === params.assistantId)
