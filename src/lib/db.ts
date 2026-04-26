@@ -91,20 +91,22 @@ export const db = {
     }
 
     // Incremento normal
-    await supabaseAdmin.rpc('increment_message_count', {
+    // Incremento atômico via RPC
+    const { error: rpcError } = await supabaseAdmin.rpc('increment_message_count', {
       p_clerk_user_id: clerkUserId
-    }).then(async ({ error }) => {
-      // Fallback se a RPC não existir
-      if (error) {
-        await supabaseAdmin
-          .from('users')
-          .update({
-            monthly_message_count: (user.monthly_message_count ?? 0) + 1,
-            updated_at: now.toISOString()
-          })
-          .eq('clerk_user_id', clerkUserId)
-      }
     })
+
+    if (rpcError) {
+      console.warn('RPC increment_message_count falhou, usando fallback manual:', rpcError)
+      // Fallback manual se a RPC não existir ou falhar
+      await supabaseAdmin
+        .from('users')
+        .update({
+          monthly_message_count: (user.monthly_message_count ?? 0) + 1,
+          updated_at: now.toISOString()
+        })
+        .eq('clerk_user_id', clerkUserId)
+    }
   },
 
   // ── Métodos de Assinatura (Hubla Webhooks) ──────────────────
@@ -220,13 +222,13 @@ export const threads = {
 
   // Incrementa o contador de mensagens de uma thread
   incrementCount: async (openaiThreadId: string) => {
-    const { error } = await supabaseAdmin
-      .from('threads')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('openai_thread_id', openaiThreadId)
+    const { error: rpcError } = await supabaseAdmin.rpc('increment_thread_message_count', {
+      p_openai_thread_id: openaiThreadId
+    })
 
-    // Incrementa via update manual (fallback seguro)
-    if (!error) {
+    if (rpcError) {
+      console.warn('RPC increment_thread_message_count falhou, usando fallback manual:', rpcError)
+      // Fallback manual seguro
       const { data } = await supabaseAdmin
         .from('threads')
         .select('message_count')
@@ -236,7 +238,10 @@ export const threads = {
       if (data) {
         await supabaseAdmin
           .from('threads')
-          .update({ message_count: (data.message_count ?? 0) + 1 })
+          .update({ 
+            message_count: (data.message_count ?? 0) + 1,
+            updated_at: new Date().toISOString()
+          })
           .eq('openai_thread_id', openaiThreadId)
       }
     }

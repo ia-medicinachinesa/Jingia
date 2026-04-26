@@ -52,6 +52,9 @@ export async function POST(req: Request) {
           quotaExceeded: true 
         }, { status: 429 })
       }
+
+      // Incrementa o contador logo no início (Evita perda se o stream cair)
+      await db.incrementMessageCount(userId)
     }
 
     // ── ASSISTENTE ─────────────────────────────────────────────
@@ -95,9 +98,7 @@ export async function POST(req: Request) {
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify(textDelta.text.value)}\n\n`))
               }
             } else if (event.event === 'thread.run.completed') {
-              // Quando o assistente termina de responder, atualizamos o banco de dados
-              await db.incrementMessageCount(userId)
-
+              // Quando o assistente termina de responder, criamos a thread no banco se for nova
               if (isNewThread && user) {
                 const title = message.length > 60 ? message.slice(0, 57) + '...' : message
                 await threads.create(user.id, assistantId, threadId, title)
