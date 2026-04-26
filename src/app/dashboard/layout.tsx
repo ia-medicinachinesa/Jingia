@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+export const dynamic = 'force-dynamic'
 import { checkSubscription } from '@/lib/subscription'
 import DashboardShell from '@/components/DashboardShell'
 import { PlanId } from '@/lib/plans'

@@ -1,4 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
+export const dynamic = 'force-dynamic'
 import { checkSubscription } from '@/lib/subscription'
 import { ASSISTANTS, canAccessAssistant } from '@/lib/assistants'
 import { PlanId } from '@/lib/plans'

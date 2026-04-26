@@ -7,6 +7,8 @@ import { MessageSquare, Trash2, Clock, ArrowLeft, Search, Sparkles, FileText, Ta
 import { ASSISTANTS } from '@/lib/assistants'
 import { cn } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 // Mapeamento de Ícones Fine-Line (Sincronizado com Dashboard)
 const ASSISTANT_ICONS: Record<string, LucideIcon> = {
   'ASS-01': Sparkles,

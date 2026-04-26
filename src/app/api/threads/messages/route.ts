@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import { openai } from '@/lib/openai'
 
 const isClerkConfigured =

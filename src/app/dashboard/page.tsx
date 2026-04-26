@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+export const dynamic = 'force-dynamic'
 import { checkSubscription } from '@/lib/subscription'
 import { ASSISTANTS } from '@/lib/assistants'
 import AssistantCard from '@/components/AssistantCard'

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import { openai } from '@/lib/openai'
 import { chatRateLimit } from '@/lib/ratelimit'
 import { sanitizeInput } from '@/lib/sanitize'

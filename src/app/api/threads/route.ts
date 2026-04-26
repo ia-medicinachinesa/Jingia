@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import { db, threads } from '@/lib/db'
 
 const isClerkConfigured =
