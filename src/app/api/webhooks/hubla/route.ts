@@ -4,6 +4,7 @@ import {
   HUBLA_HEADERS,
   extractBuyerEmail,
   extractProductId,
+  extractSubscriptionId,
   resolveInternalPlanId,
   calculateExpiresAt,
   type HublaWebhookPayload,
@@ -111,8 +112,8 @@ export async function POST(req: NextRequest) {
 
   // ── 5. Gerar ID de idempotência ──────────────────────────────
   const hublaIdempotency = req.headers.get(HUBLA_HEADERS.IDEMPOTENCY)
-  const subscriptionId = payload.subscription?.id ?? payload.invoice?.id ?? ''
-  const eventId = hublaIdempotency ?? `${subscriptionId}_${eventType}_${payload.modifiedAt ?? Date.now()}`
+  const subscriptionId = extractSubscriptionId(payload)
+  const eventId = hublaIdempotency ?? `${subscriptionId}_${eventType}_${payload.modifiedAt ?? payload.event?.modifiedAt ?? Date.now()}`
 
   try {
     const alreadyProcessed = await db.isEventProcessed(eventId)
@@ -152,8 +153,19 @@ export async function POST(req: NextRequest) {
       errorMessage = 'E-mail do comprador não encontrado no payload'
       console.warn(`[HUBLA WEBHOOK] ${errorMessage}`)
     } else if (!userFound) {
-      // ── Provisão automática: tenta criar o perfil do usuário ──
-      // Busca o clerk_user_id via API do Clerk para manter a integridade
+      // ── Pré-provisão: o usuário pagou na Hubla mas ainda não tem conta ──
+      // Cenário principal: Hubla é o topo do funil. O usuário compra ANTES
+      // de criar conta no Clerk. Precisamos guardar a assinatura agora para
+      // que, quando ele criar a conta, ela já esteja ativa.
+      //
+      // Estratégia:
+      //   1. Tenta encontrar no Clerk (caso o user já tenha criado conta)
+      //   2. Se não encontrar, cria registro com clerk_user_id provisório
+      //      (prefixo "pending_"). Quando o user fizer login pela primeira
+      //      vez, checkSubscription() vincula o ID real do Clerk.
+
+      let clerkUserId: string | null = null
+
       try {
         const clerkSecretKey = process.env.CLERK_SECRET_KEY
         if (clerkSecretKey) {
@@ -166,33 +178,40 @@ export async function POST(req: NextRequest) {
               },
             }
           )
-
           if (clerkRes.ok) {
             const clerkUsers = await clerkRes.json()
             if (Array.isArray(clerkUsers) && clerkUsers.length > 0) {
-              const clerkUserId = clerkUsers[0].id
-              // Cria o perfil no Supabase via upsert
-              const newUser = await db.upsertUser(clerkUserId, buyerEmail, {
-                subscription_status: 'inactive',
-                plan_id: null,
-                monthly_message_count: 0,
-              })
-              userId = newUser.id
-              userFound = true
-              console.info(`[HUBLA WEBHOOK] ✅ Perfil provisionado automaticamente para: ${buyerEmail}`)
+              clerkUserId = clerkUsers[0].id
             }
           }
         }
-      } catch (provisionError) {
-        console.error('[HUBLA WEBHOOK] Erro ao provisionar perfil:', provisionError)
+      } catch (lookupErr) {
+        console.warn('[HUBLA WEBHOOK] Erro ao buscar no Clerk:', lookupErr)
+      }
+
+      // Se não encontrou no Clerk, usa ID provisório
+      const resolvedClerkId = clerkUserId ?? `pending_${buyerEmail}`
+
+      try {
+        const newUser = await db.upsertUser(resolvedClerkId, buyerEmail, {
+          subscription_status: 'inactive',
+          plan_id: null,
+          monthly_message_count: 0,
+        })
+        userId = newUser.id
+        userFound = true
+        console.info(
+          `[HUBLA WEBHOOK] ✅ Perfil pré-provisionado: ${buyerEmail} (clerk: ${resolvedClerkId})`
+        )
+      } catch (provisionErr) {
+        console.error('[HUBLA WEBHOOK] Erro ao pré-provisionar perfil:', provisionErr)
       }
 
       if (userFound) {
-        // Agora que o perfil existe, processa o evento normalmente
         await processEvent(eventType, payload, buyerEmail)
       } else {
         status = 'failed'
-        errorMessage = `Usuário não encontrado no Clerk nem no Supabase para: ${buyerEmail}. Evento registrado para reconciliação.`
+        errorMessage = `Falha ao pré-provisionar perfil para: ${buyerEmail}`
         console.warn(`[HUBLA WEBHOOK] ${errorMessage}`)
       }
     } else {
@@ -224,7 +243,11 @@ export async function POST(req: NextRequest) {
     `[HUBLA WEBHOOK] ${eventType} | ${status} | ${buyerEmail ?? 'sem email'} | ${elapsed}ms`
   )
 
-  return NextResponse.json({ status, eventId }, { status: 200 })
+  return NextResponse.json({ 
+    status, 
+    eventId,
+    ...(status === 'failed' ? { error: errorMessage } : {})
+  }, { status: 200 })
 }
 
 // ═══════════════════════════════════════════════════════════════

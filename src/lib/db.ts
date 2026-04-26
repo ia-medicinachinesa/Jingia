@@ -36,7 +36,7 @@ export const db = {
     const { data, error } = await supabaseAdmin
       .from('users')
       .select('*')
-      .eq('email', email)
+      .ilike('email', email)
       .single()
 
     if (error && error.code !== 'PGRST116') {

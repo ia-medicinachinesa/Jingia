@@ -132,13 +132,14 @@ export const HUBLA_HEADERS = {
  */
 export function extractBuyerEmail(payload: HublaWebhookPayload): string | null {
   const data = payload.event || payload
-  return (
+  const email = (
     data.user?.email ??
     data.member?.email ??
     data.subscription?.payer?.email ?? 
     (data.invoice as HublaInvoice | undefined)?.payer?.email ??
     null
   )
+  return email ? email.toLowerCase().trim() : null
 }
 
 /**
@@ -146,7 +147,20 @@ export function extractBuyerEmail(payload: HublaWebhookPayload): string | null {
  */
 export function extractProductId(payload: HublaWebhookPayload): string | null {
   const data = payload.event || payload
-  return data.product?.id ?? null
+  return data.product?.id ?? data.subscription?.id ?? null
+}
+
+/**
+ * Extrai o ID da assinatura ou fatura para fins de log/idempotência.
+ */
+export function extractSubscriptionId(payload: HublaWebhookPayload): string {
+  const data = payload.event || payload
+  return (
+    data.subscription?.id ?? 
+    (data.invoice as HublaInvoice | undefined)?.id ?? 
+    data.subscription?.id ?? 
+    ''
+  )
 }
 
 /**
