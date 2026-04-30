@@ -11,6 +11,8 @@ export interface UserRow {
   subscription_expires_at: string | null
   crm:                     string | null
   specialty:               string | null
+  vector_store_id:         string | null
+  last_response_id:        string | null
   created_at:              string
   updated_at:              string
 }
@@ -181,6 +183,22 @@ export const db = {
     }
 
     return (data?.length ?? 0) > 0
+  },
+
+  // Atualiza o ID da última resposta para manter o contexto na Responses API
+  updateLastResponseId: async (clerkUserId: string, responseId: string) => {
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ 
+        last_response_id: responseId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('clerk_user_id', clerkUserId)
+
+    if (error) {
+      console.error('Erro ao atualizar last_response_id:', error)
+      throw error
+    }
   },
 }
 

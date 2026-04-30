@@ -8,6 +8,7 @@ import { AssistantConfig } from '@/lib/assistants'
 import { PlanId } from '@/lib/plans'
 import ChatMessage from '@/components/ChatMessage'
 import UpgradeCTA from '@/components/UpgradeCTA'
+import FileUpload from '@/components/FileUpload'
 import { cn } from '@/lib/utils'
 
 // Mapeamento de Ícones Fine-Line (Sincronizado)
@@ -48,6 +49,9 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
   const [isLoadingHistory, setIsLoadingHistory] = useState(!!initialThreadId)
   const [threadId, setThreadId]               = useState<string | null>(initialThreadId)
   const [usedCount, setUsedCount]             = useState(messagesUsed)
+  const [vectorStoreId, setVectorStoreId]     = useState<string | null>(null)
+  const [fileId, setFileId]                   = useState<string | null>(null)
+  const [attachedFileName, setAttachedFileName] = useState<string | null>(null)
   const bottomRef                             = useRef<HTMLDivElement>(null)
   const inputRef                              = useRef<HTMLTextAreaElement>(null)
   const router                                = useRouter()
@@ -98,13 +102,18 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
 
     // Integração Real da OpenAI via nossa API backend (Streaming)
     try {
-      const res = await fetch('/api/chat', {
+      const isArticleAnalyst = assistant.id === 'ASS-07'
+      const apiUrl = isArticleAnalyst ? '/api/chat/responses' : '/api/chat'
+      
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: trimmed, 
           assistantId: assistant.id,
-          threadId: threadId // Será null na primeira e preservado nas próximas
+          threadId: threadId, // Para API antiga
+          vectorStoreId: isArticleAnalyst ? vectorStoreId : undefined, // Para API nova
+          fileId: isArticleAnalyst ? fileId : undefined
         })
       })
       
@@ -279,6 +288,22 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
       {/* Footer com Input */}
       <div className="p-4 md:p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
          <form onSubmit={handleSubmit} className="flex gap-3 items-end relative">
+          
+          {/* Componente de Upload para Analista de Artigos */}
+          {assistant.id === 'ASS-07' && (
+            <div className="mb-1.5">
+              <FileUpload 
+                planId={planId}
+                onUploadComplete={(vsId, fId, fName) => {
+                  setVectorStoreId(vsId)
+                  setFileId(fId)
+                  setAttachedFileName(fName)
+                }}
+                disabled={isLoading}
+              />
+            </div>
+          )}
+
           <textarea
             ref={inputRef}
             value={input}

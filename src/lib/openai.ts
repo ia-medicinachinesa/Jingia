@@ -6,3 +6,8 @@ import OpenAI from 'openai'
 export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'MISSING_API_KEY',
 })
+
+// Cliente dedicado para o projeto isolado do Analista de Artigos (2026)
+export const openaiAnalista = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY_ANALISTA || process.env.OPENAI_API_KEY || 'MISSING_API_KEY',
+})
