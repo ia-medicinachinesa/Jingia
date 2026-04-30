@@ -43,6 +43,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Construir o conteúdo da mensagem (Suporte a Multimodalidade 2026)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const content: any[] = [{ type: "text", text: message }]
     
     // Se houver um arquivo direto (imagem ou doc específico para visão)
@@ -69,6 +70,7 @@ export async function POST(req: Request) {
       : "Você é um assistente clínico de Inteligência Artificial especializado na Medicina Tradicional Chinesa."
 
     // 5. Chamada para a Responses API (OpenAI 2026)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (openaiAnalista as any).responses.create({
       model: "gpt-5.5-preview",
       store: true,
@@ -83,6 +85,7 @@ export async function POST(req: Request) {
           content: content
         }
       ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
       tool_choice: storeIds.length > 0 ? "required" : "auto"
     })
@@ -98,6 +101,7 @@ export async function POST(req: Request) {
 
     // 5. Retornar o stream para o frontend
     // O método toReadableStream() é nativo do SDK v6+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new Response((response as any).toReadableStream(), {
       headers: {
         'Content-Type': 'text/event-stream',

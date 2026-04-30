@@ -24,6 +24,7 @@ export const vectorStoreProvider = {
 
     // Criar na OpenAI
     // Usamos o prefixo "JingIA_" para facilitar a identificação no dashboard
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vectorStore = await (openaiAnalista as any).vectorStores.create({
       name: `JingIA_Store_${clerkUserId}`,
     })
@@ -57,10 +58,12 @@ export const vectorStoreProvider = {
     
     const openaiFile = await openaiAnalista.files.create({
       file: file,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       purpose: 'responses' as any, // Conforme Arquitetura 2026
     })
 
     // 2. Anexar ao Vector Store
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fileBatch = await (openaiAnalista as any).vectorStores.fileBatches.create(
       vectorStoreId,
       {
@@ -79,6 +82,7 @@ export const vectorStoreProvider = {
    */
   deleteFile: async (vectorStoreId: string, fileId: string) => {
     // Remove do Vector Store
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (openaiAnalista as any).vectorStores.files.del(vectorStoreId, fileId)
     // Remove o arquivo físico
     await openaiAnalista.files.delete(fileId)

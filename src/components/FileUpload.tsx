@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Paperclip, X, FileIcon, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Paperclip, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -13,7 +13,6 @@ interface FileUploadProps {
 
 export default function FileUpload({ onUploadComplete, disabled, planId }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
   const [fileName, setFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -46,23 +45,15 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
     setFileName(file.name)
     setIsUploading(true)
     setStatus('uploading')
-    setProgress(10)
 
     try {
       const formData = new FormData()
       formData.append('file', file)
 
-      // Simulação de progresso inicial (já que o fetch padrão não tem onProgress fácil)
-      const progressInterval = setInterval(() => {
-        setProgress(prev => (prev < 90 ? prev + 10 : prev))
-      }, 500)
-
       const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData,
       })
-
-      clearInterval(progressInterval)
 
       if (!response.ok) {
         const data = await response.json()
@@ -70,7 +61,6 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
       }
 
       const data = await response.json()
-      setProgress(100)
       setStatus('success')
       
       toast.success('Documento pronto', { description: `${file.name} foi processado com sucesso.` })
@@ -92,7 +82,6 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
   const reset = () => {
     setStatus('idle')
     setFileName(null)
-    setProgress(0)
   }
 
   if (!isProfissional) {
