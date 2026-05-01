@@ -50,7 +50,6 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
   const [threadId, setThreadId]               = useState<string | null>(initialThreadId)
   const [usedCount, setUsedCount]             = useState(messagesUsed)
   const [vectorStoreId, setVectorStoreId]     = useState<string | null>(null)
-  const [fileId, setFileId]                   = useState<string | null>(null)
   const bottomRef                             = useRef<HTMLDivElement>(null)
   const inputRef                              = useRef<HTMLTextAreaElement>(null)
   const router                                = useRouter()
@@ -314,9 +313,8 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             <div className="mb-1.5">
               <FileUpload 
                 planId={planId}
-                onUploadComplete={(vsId, fId) => {
+                onUploadComplete={(vsId) => {
                   setVectorStoreId(vsId)
-                  setFileId(fId)
                 }}
                 disabled={isLoading}
               />
