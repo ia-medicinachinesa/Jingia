@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { vectorStoreProvider } from '@/lib/vector-store'
+import { Readable } from 'stream'
+import { Buffer } from 'buffer'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const isClerkConfigured =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
@@ -53,12 +56,12 @@ export async function POST(req: Request) {
     // 4. Converter Web API File → Node.js Readable stream
     // O SDK da OpenAI espera um stream Node.js com .path (nome do arquivo),
     // não o File da Web API que o Next.js entrega via formData.
-    const { Readable } = await import('stream')
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const stream = Readable.from(buffer)
     // Essencial: o SDK usa .path para determinar o nome e extensão do arquivo
-    ;(stream as NodeJS.ReadableStream & { path?: string }).path = file.name
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(stream as any).path = file.name
 
     // 5. Integração com OpenAI Vector Store
     const vectorStoreId = await vectorStoreProvider.getOrCreateVectorStore(userId)

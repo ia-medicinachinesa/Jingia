@@ -5,6 +5,7 @@ import { chatRateLimit } from '@/lib/ratelimit'
 import { PROMPTS } from '@/lib/prompts'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const isClerkConfigured =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
