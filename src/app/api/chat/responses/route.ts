@@ -58,11 +58,14 @@ export async function POST(req: Request) {
     if (process.env.OPENAI_CORE_KNOWLEDGE_ID) storeIds.push(process.env.OPENAI_CORE_KNOWLEDGE_ID)
 
     const tools = storeIds.length > 0 ? [
-      { 
-        type: "file_search", 
-        vector_store_ids: storeIds 
-      }
+      { type: "file_search" }
     ] : []
+
+    const tool_resources = storeIds.length > 0 ? {
+      file_search: {
+        vector_store_ids: storeIds
+      }
+    } : undefined
 
     // 4. Instruções do Assistente (System Prompt)
     const systemPrompt = assistantId && PROMPTS[assistantId] 
@@ -84,6 +87,8 @@ export async function POST(req: Request) {
       ],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tool_resources: tool_resources as any,
       tool_choice: storeIds.length > 0 ? "auto" : "auto"
     })
 

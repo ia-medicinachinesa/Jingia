@@ -76,9 +76,12 @@ export const vectorStoreProvider = {
    * Remove um arquivo do Vector Store e da OpenAI.
    */
   deleteFile: async (vectorStoreId: string, fileId: string) => {
-    // Remove do Vector Store
-    await openaiAnalista.vectorStores.files.delete(vectorStoreId, fileId)
-    // Remove o arquivo físico da OpenAI
-    await openaiAnalista.files.delete({ file_id: fileId })
+    // No SDK v6, este método usa argumentos posicionais (vs_id, file_id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (openaiAnalista.vectorStores.files.delete as any)(vectorStoreId, fileId)
+
+    // Já o files.delete padrão usa um objeto { file_id }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (openaiAnalista.files.delete as any)({ file_id: fileId })
   }
 }
