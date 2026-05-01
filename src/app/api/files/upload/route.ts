@@ -11,10 +11,12 @@ const isClerkConfigured =
   !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('placeholder')
 
 export async function POST(req: Request) {
+  let checkpoint = 'Início'
   try {
     let userId = 'dev_user'
 
     // 1. Autenticação
+    checkpoint = 'Autenticação Clerk'
     if (isClerkConfigured) {
       const { auth } = await import('@clerk/nextjs/server')
       const { userId: clerkId } = await auth()
@@ -26,11 +28,13 @@ export async function POST(req: Request) {
     }
 
     // 2. Validação do Usuário e Plano
+    checkpoint = 'Busca de Usuário no Banco'
     const user = await db.getUserByClerkId(userId)
     if (!user) {
-      return NextResponse.json({ error: 'Usuário não encontrado no banco de dados.' }, { status: 404 })
+      return NextResponse.json({ error: `Usuário [${userId}] não encontrado no banco de dados.` }, { status: 404 })
     }
 
+    checkpoint = 'Validação de Plano'
     if (user.plan_id !== 'profissional' && userId !== 'dev_user') {
       return NextResponse.json({ 
         error: 'Recurso exclusivo do Plano Profissional.',
@@ -39,6 +43,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Processamento do Arquivo
+    checkpoint = 'Recebimento do Arquivo (FormData)'
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 
@@ -52,16 +57,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Arquivo muito grande. O limite é 20MB.' }, { status: 400 })
     }
 
-    // 4. Preparar o arquivo para a OpenAI usando o utilitário oficial toFile
-    // Isso garante que metadados (nome, extensão) sejam preservados corretamente para o parsing de PDFs/Docs
+    checkpoint = 'Preparação do Buffer (toFile)'
     const { toFile } = await import('openai')
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const fileForOpenAI = await toFile(buffer, file.name)
 
-    // 5. Integração com OpenAI Vector Store
+    // 4. Integração com OpenAI Vector Store
+    checkpoint = 'Criação/Busca de Vector Store'
     const vectorStoreId = await vectorStoreProvider.getOrCreateVectorStore(userId)
     
+    checkpoint = 'Upload e Indexação na OpenAI'
     const { fileId } = await vectorStoreProvider.uploadAndAttachFile(vectorStoreId, fileForOpenAI)
 
     return NextResponse.json({ 
@@ -73,13 +79,13 @@ export async function POST(req: Request) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error('Erro detalhado no upload de arquivo:', error)
+    console.error(`Erro no upload [Fase: ${checkpoint}]:`, error)
     
     // Tenta capturar a mensagem de erro específica da OpenAI se houver
-    const errorMessage = error.response?.data?.error?.message || error.message || 'Erro desconhecido no servidor'
+    const errorMessage = error.response?.data?.error?.message || error.message || 'Erro desconhecido'
     
     return NextResponse.json({ 
-      error: `Erro no processamento: ${errorMessage}`,
+      error: `Falha na fase [${checkpoint}]: ${errorMessage}`,
       details: error.stack
     }, { status: 500 })
   }
