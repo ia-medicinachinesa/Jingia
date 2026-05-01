@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { openaiAnalista } from '@/lib/openai'
-import { db } from '@/lib/db'
+import { db, threads } from '@/lib/db'
 import { chatRateLimit } from '@/lib/ratelimit'
 import { PROMPTS } from '@/lib/prompts'
 
@@ -99,14 +99,41 @@ export async function POST(req: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          let isHistoryCreated = false
+
           // Iterar sobre os eventos da OpenAI
           for await (const chunk of responseStream) {
-            // Se for o evento de conclusão da resposta, persistimos o ID no banco
-            if (chunk.type === 'response.done') {
+            
+            // Gerenciamento de Histórico (threads) e Contexto
+            if (chunk.type === 'response.created') {
               const responseId = chunk.response?.id
               if (responseId) {
+                // 1. Atualiza o contexto global do usuário
                 await db.updateLastResponseId(userId, responseId)
+
+                // 2. Gerencia o Histórico de Conversas (Tabela threads)
+                if (!threadId && !isHistoryCreated) {
+                  // Primeira mensagem: Criar entrada no histórico
+                  const title = message.length > 60 ? message.slice(0, 57) + '...' : message
+                  await threads.create(user.id, assistantId, responseId, title)
+                  isHistoryCreated = true
+                } else if (threadId) {
+                  // Mensagem subsequente: Atualiza o ponteiro da thread para o ID mais recente
+                  // Importamos o supabaseAdmin dinamicamente ou usamos via db se disponível
+                  const { supabaseAdmin } = await import('@/lib/supabase')
+                  await supabaseAdmin
+                    .from('threads')
+                    .update({ 
+                      openai_thread_id: responseId,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('openai_thread_id', threadId)
+                }
               }
+            }
+            
+            if (chunk.type === 'response.done') {
+              // Finalização opcional de logs
             }
             
             // Repassa o evento para o frontend
