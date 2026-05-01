@@ -50,10 +50,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Arquivo muito grande. O limite é 20MB.' }, { status: 400 })
     }
 
-    // 4. Integração com OpenAI Vector Store
+    // 4. Converter Web API File → Node.js Readable stream
+    // O SDK da OpenAI espera um stream Node.js com .path (nome do arquivo),
+    // não o File da Web API que o Next.js entrega via formData.
+    const { Readable } = await import('stream')
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    const stream = Readable.from(buffer)
+    // Essencial: o SDK usa .path para determinar o nome e extensão do arquivo
+    ;(stream as NodeJS.ReadableStream & { path?: string }).path = file.name
+
+    // 5. Integração com OpenAI Vector Store
     const vectorStoreId = await vectorStoreProvider.getOrCreateVectorStore(userId)
     
-    const { fileId } = await vectorStoreProvider.uploadAndAttachFile(vectorStoreId, file)
+    const { fileId } = await vectorStoreProvider.uploadAndAttachFile(vectorStoreId, stream)
 
     return NextResponse.json({ 
       success: true, 

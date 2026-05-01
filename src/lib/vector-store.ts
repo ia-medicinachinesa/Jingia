@@ -51,15 +51,20 @@ export const vectorStoreProvider = {
    * Faz o upload de um arquivo e o anexa a um Vector Store.
    * Usa vectorStores.files.uploadAndPoll que faz upload + vinculação + aguarda processamento.
    * @param vectorStoreId ID do Vector Store na OpenAI
-   * @param file Arquivo do tipo File (Web API File/Blob do FormData)
+   * @param file Stream Node.js com .path definido (convertido na rota de upload)
    */
-  uploadAndAttachFile: async (vectorStoreId: string, file: File) => {
-    // O SDK v6 aceita File/Blob diretamente no uploadAndPoll
-    // Este método faz tudo: upload do arquivo, vinculação ao vector store e polling até ficar pronto
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  uploadAndAttachFile: async (vectorStoreId: string, file: any) => {
     const vsFile = await openaiAnalista.vectorStores.files.uploadAndPoll(
       vectorStoreId,
       file
     )
+
+    console.log('Vector Store File processado:', vsFile.id, '| Status:', vsFile.status)
+
+    if (vsFile.status === 'failed') {
+      throw new Error(`Falha ao processar arquivo no Vector Store: ${vsFile.id}`)
+    }
 
     return {
       fileId: vsFile.id,
@@ -74,6 +79,6 @@ export const vectorStoreProvider = {
     // Remove do Vector Store
     await openaiAnalista.vectorStores.files.delete(vectorStoreId, fileId)
     // Remove o arquivo físico da OpenAI
-    await openaiAnalista.files.delete(fileId)
+    await openaiAnalista.files.delete({ file_id: fileId })
   }
 }
