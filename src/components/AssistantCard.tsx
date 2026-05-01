@@ -24,7 +24,9 @@ interface Props {
 
 export default function AssistantCard({ assistant, planId }: Props) {
   const hasAccess = canAccessAssistant(assistant.id, planId)
-  const isConfigured = assistant.openaiId && !assistant.openaiId.includes('placeholder')
+  // Assistentes de nova geração (Responses API) estão sempre configurados internamente
+  const isNewApi = ['ASS-06', 'ASS-07'].includes(assistant.id)
+  const isConfigured = isNewApi || (assistant.openaiId && !assistant.openaiId.includes('placeholder'))
 
   // Encontra o plano mínimo necessário para exibir no CTA
   const requiredPlan = assistant.plans[0]
