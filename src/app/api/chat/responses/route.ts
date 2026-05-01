@@ -13,7 +13,7 @@ const isClerkConfigured =
 
 export async function POST(req: Request) {
   try {
-    const { message, vectorStoreId, assistantId } = await req.json()
+    const { message, vectorStoreId, assistantId, threadId } = await req.json()
 
     if (!message) {
       return NextResponse.json({ error: 'Mensagem é requerida' }, { status: 400 })
@@ -70,11 +70,11 @@ export async function POST(req: Request) {
 
     // 5. Chamada para a Responses API (OpenAI 2026) com Streaming ativado
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const response = await (openaiAnalista as any).responses.create({
+    const responseStream = await (openaiAnalista as any).responses.create({
       model: "gpt-4.1",
       store: true,
-      stream: true, // ESSENCIAL para habilitar .toReadableStream()
-      previous_response_id: user.last_response_id || undefined,
+      stream: true, 
+      previous_response_id: threadId || user.last_response_id || undefined,
       instructions: systemPrompt,
       input: [
         { 
@@ -87,25 +87,44 @@ export async function POST(req: Request) {
       tool_choice: "auto"
     })
 
-    if (!response) {
+    if (!responseStream) {
       throw new Error("Resposta vazia da OpenAI")
     }
 
-    // 3. (Temporário) Atualizar o ID da última resposta
-    // No modo streaming, o ID vem dentro dos eventos do stream. 
-    // Vamos desabilitar o update imediato para o chat fluir.
-    /*
-    if (response.id) {
-      await db.updateLastResponseId(userId, response.id)
-    }
-    */
-
-    // 4. Incrementar contador de mensagens
+    // 6. Incrementar contador de mensagens
     await db.incrementMessageCount(userId)
 
-    // 5. Retornar o stream para o frontend
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return new Response((response as any).toReadableStream(), {
+    // 7. Preparar Stream Manual para capturar IDs e atualizar Banco
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // Iterar sobre os eventos da OpenAI
+          for await (const chunk of responseStream) {
+            // Se for o evento de conclusão da resposta, persistimos o ID no banco
+            if (chunk.type === 'response.done') {
+              const responseId = chunk.response?.id
+              if (responseId) {
+                await db.updateLastResponseId(userId, responseId)
+              }
+            }
+            
+            // Repassa o evento para o frontend
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+          }
+          
+          // Sinaliza fim para parsers que esperam [DONE]
+          controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
+        } catch (err) {
+          console.error("Erro no processamento da stream:", err)
+          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify('Erro no processamento da stream.')}\n\n`))
+        } finally {
+          controller.close()
+        }
+      }
+    })
+
+    return new Response(stream, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',

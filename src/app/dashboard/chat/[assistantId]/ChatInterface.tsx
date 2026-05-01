@@ -158,7 +158,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           }
 
           if (eventData === '[DONE]') {
-            // Fim do stream finalizado pela API (DB já atualizado pelo backend)
+            // Fim do stream finalizado pela API legada
             router.refresh()
             inputRef.current?.focus()
             continue
@@ -175,17 +175,39 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             }
           } else if (eventType === 'message' && eventData) {
             try {
-              const parsedText = JSON.parse(eventData)
-              assistantMessage += parsedText
+              const parsed = JSON.parse(eventData)
+              
+              // Suporte para Responses API v6 (OpenAI 2026)
+              if (typeof parsed === 'object' && parsed !== null) {
+                // Captura do Delta de Texto
+                if (parsed.type === 'response.output_text.delta' && parsed.delta) {
+                  assistantMessage += parsed.delta
+                } 
+                // Captura do ID da resposta para manter o contexto (Pointer para a próxima mensagem)
+                else if (parsed.type === 'response.created' && parsed.response?.id) {
+                  setThreadId(parsed.response.id)
+                }
+                // Fim da Resposta
+                else if (parsed.type === 'response.done') {
+                  router.refresh()
+                  inputRef.current?.focus()
+                }
+              } 
+              // Suporte para Chat Completions legado (Envio direto da string)
+              else {
+                assistantMessage += parsed
+              }
               
               // Atualiza reativamente a última mensagem na tela pedaço a pedaço
               setMessages(prev => {
                 const newMsgs = [...prev]
-                newMsgs[newMsgs.length - 1].content = assistantMessage
+                if (newMsgs.length > 0) {
+                  newMsgs[newMsgs.length - 1].content = assistantMessage
+                }
                 return newMsgs
               })
-            } catch {
-              // Ignorar payload quebrado (não deve acontecer com JSON stringify no server)
+            } catch (err) {
+              console.error('Erro ao processar evento do stream:', err)
             }
           }
           
