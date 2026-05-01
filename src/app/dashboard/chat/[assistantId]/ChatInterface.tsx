@@ -101,8 +101,8 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
 
     // Integração Real da OpenAI via nossa API backend (Streaming)
     try {
-      const isArticleAnalyst = assistant.id === 'ASS-07'
-      const apiUrl = isArticleAnalyst ? '/api/chat/responses' : '/api/chat'
+      const isNewApiAssistant = assistant.id === 'ASS-07' || assistant.id === 'ASS-06'
+      const apiUrl = isNewApiAssistant ? '/api/chat/responses' : '/api/chat'
       
       const res = await fetch(apiUrl, {
         method: 'POST',
@@ -110,9 +110,8 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
         body: JSON.stringify({ 
           message: trimmed, 
           assistantId: assistant.id,
-          threadId: threadId, // Para API antiga
-          vectorStoreId: isArticleAnalyst ? vectorStoreId : undefined, // Para API nova
-          fileId: isArticleAnalyst ? fileId : undefined
+          threadId: threadId, // Para API antiga e agora para a nova também
+          vectorStoreId: isNewApiAssistant ? vectorStoreId : undefined, // Para API nova
         })
       })
       
@@ -310,8 +309,8 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
       <div className="p-4 md:p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
          <form onSubmit={handleSubmit} className="flex gap-3 items-end relative">
           
-          {/* Componente de Upload para Analista de Artigos */}
-          {assistant.id === 'ASS-07' && (
+          {/* Componente de Upload para Analistas (Artigos e Exames) */}
+          {(assistant.id === 'ASS-07' || assistant.id === 'ASS-06') && (
             <div className="mb-1.5">
               <FileUpload 
                 planId={planId}
