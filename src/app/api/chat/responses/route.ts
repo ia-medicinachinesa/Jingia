@@ -60,11 +60,13 @@ export async function POST(req: Request) {
       }
     ] : []
 
-    const tool_resources = storeIds.length > 0 ? {
-      file_search: {
-        vector_store_ids: storeIds
+    const tools = storeIds.length > 0 ? [
+      { 
+        type: "file_search",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        vector_store_ids: storeIds as any
       }
-    } : undefined
+    ] : []
 
     // 4. Instruções do Assistente (System Prompt)
     const systemPrompt = assistantId && PROMPTS[assistantId] 
@@ -86,8 +88,6 @@ export async function POST(req: Request) {
       ],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tool_resources: tool_resources as any,
       tool_choice: "auto"
     })
 
