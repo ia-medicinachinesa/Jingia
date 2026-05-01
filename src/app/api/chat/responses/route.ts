@@ -47,10 +47,13 @@ export async function POST(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const content: any[] = [{ type: "input_text", text: message }]
     
-    // 3. Vector Stores (Usuário + Conhecimento Base)
-    const storeIds: string[] = []
-    if (vectorStoreId) storeIds.push(vectorStoreId)
-    if (process.env.OPENAI_CORE_KNOWLEDGE_ID) storeIds.push(process.env.OPENAI_CORE_KNOWLEDGE_ID)
+    // 3. Vector Stores (Usuário + Conhecimento Base) - Sanitizado com .trim()
+    const storeIds: string[] = [
+      vectorStoreId,
+      process.env.OPENAI_CORE_KNOWLEDGE_ID
+    ]
+      .filter((id): id is string => Boolean(id))
+      .map(id => id.trim())
 
     const tools = storeIds.length > 0 ? [
       { 
