@@ -42,17 +42,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 })
     }
 
-    // 2. Construir o conteúdo da mensagem (Suporte a Multimodalidade 2026)
+    // 2. Construir o conteúdo da mensagem (Responses API 2026 — tipos: input_text, input_image, input_file)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const content: any[] = [{ type: "text", text: message }]
+    const content: any[] = [{ type: "input_text", text: message }]
     
     // Se houver um arquivo direto (imagem ou doc específico para visão)
     if (fileId) {
-      content.push({ type: "file", file_id: fileId })
+      content.push({ type: "input_file", file_id: fileId })
     }
 
     // 3. Vector Stores (Usuário + Conhecimento Base)
-    const storeIds = []
+    const storeIds: string[] = []
     if (vectorStoreId) storeIds.push(vectorStoreId)
     // Lê a env var do Vector Store global se existir (ex: artigos de referência, livros base)
     if (process.env.OPENAI_CORE_KNOWLEDGE_ID) storeIds.push(process.env.OPENAI_CORE_KNOWLEDGE_ID)
@@ -72,14 +72,11 @@ export async function POST(req: Request) {
     // 5. Chamada para a Responses API (OpenAI 2026)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (openaiAnalista as any).responses.create({
-      model: "gpt-5.5-preview",
+      model: "gpt-4.1",
       store: true,
       previous_response_id: user.last_response_id || undefined,
+      instructions: systemPrompt,
       input: [
-        {
-          role: "system",
-          content: systemPrompt
-        },
         { 
           role: "user", 
           content: content
@@ -87,7 +84,7 @@ export async function POST(req: Request) {
       ],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
-      tool_choice: storeIds.length > 0 ? "required" : "auto"
+      tool_choice: storeIds.length > 0 ? "auto" : "auto"
     })
 
     // 3. Atualizar o ID da última resposta de forma assíncrona
