@@ -12,7 +12,7 @@ const isClerkConfigured =
 
 export async function POST(req: Request) {
   try {
-    const { message, vectorStoreId, fileId, assistantId } = await req.json()
+    const { message, vectorStoreId, assistantId } = await req.json()
 
     if (!message) {
       return NextResponse.json({ error: 'Mensagem é requerida' }, { status: 400 })
@@ -42,29 +42,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 })
     }
 
-    // 2. Construir o conteúdo da mensagem (Responses API 2026 — tipos: input_text, input_image, input_file)
+    // 2. Construir o conteúdo da mensagem (Responses API 2026 — RAG focado)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const content: any[] = [{ type: "input_text", text: message }]
     
-    // Se houver um arquivo direto (imagem ou doc específico para visão)
-    if (fileId) {
-      content.push({ type: "input_file", file_id: fileId })
-    }
-
     // 3. Vector Stores (Usuário + Conhecimento Base)
     const storeIds: string[] = []
     if (vectorStoreId) storeIds.push(vectorStoreId)
-    // Lê a env var do Vector Store global se existir (ex: artigos de referência, livros base)
     if (process.env.OPENAI_CORE_KNOWLEDGE_ID) storeIds.push(process.env.OPENAI_CORE_KNOWLEDGE_ID)
 
-    const tools = storeIds.length > 0 ? [
-      { type: "file_search" }
-    ] : []
-
+    const tools = storeIds.length > 0 ? [{ type: "file_search" }] : []
     const tool_resources = storeIds.length > 0 ? {
-      file_search: {
-        vector_store_ids: storeIds
-      }
+      file_search: { vector_store_ids: storeIds }
     } : undefined
 
     // 4. Instruções do Assistente (System Prompt)
@@ -89,11 +78,14 @@ export async function POST(req: Request) {
       tools: tools as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tool_resources: tool_resources as any,
-      tool_choice: storeIds.length > 0 ? "auto" : "auto"
+      tool_choice: "auto"
     })
 
+    if (!response) {
+      throw new Error("Resposta vazia da OpenAI")
+    }
+
     // 3. Atualizar o ID da última resposta de forma assíncrona
-    // Nota: Em um ambiente real de 2026, o response.id é retornado imediatamente antes do stream ou via eventos de stream.
     if (response.id) {
       await db.updateLastResponseId(userId, response.id)
     }
@@ -102,7 +94,6 @@ export async function POST(req: Request) {
     await db.incrementMessageCount(userId)
 
     // 5. Retornar o stream para o frontend
-    // O método toReadableStream() é nativo do SDK v6+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new Response((response as any).toReadableStream(), {
       headers: {
