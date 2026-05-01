@@ -60,14 +60,6 @@ export async function POST(req: Request) {
       }
     ] : []
 
-    const tools = storeIds.length > 0 ? [
-      { 
-        type: "file_search",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        vector_store_ids: storeIds as any
-      }
-    ] : []
-
     // 4. Instruções do Assistente (System Prompt)
     const systemPrompt = assistantId && PROMPTS[assistantId] 
       ? PROMPTS[assistantId] 
