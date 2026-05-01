@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       model: "gpt-4.1",
       store: true,
       stream: true, 
-      previous_response_id: threadId || user.last_response_id || undefined,
+      previous_response_id: threadId || undefined,
       instructions: systemPrompt,
       input: [
         { 

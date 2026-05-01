@@ -55,16 +55,19 @@ export const vectorStoreProvider = {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   uploadAndAttachFile: async (vectorStoreId: string, file: any) => {
-    const vsFile = await openaiAnalista.vectorStores.files.uploadAndPoll(
+    // 1. Upload do arquivo para a OpenAI (sem aguardar indexação completa)
+    const uploadedFile = await openaiAnalista.files.create({
+      file,
+      purpose: 'assistants'
+    })
+
+    // 2. Vincula o arquivo ao Vector Store do usuário
+    const vsFile = await openaiAnalista.vectorStores.files.create(
       vectorStoreId,
-      file
+      { file_id: uploadedFile.id }
     )
 
-    console.log('Vector Store File processado:', vsFile.id, '| Status:', vsFile.status)
-
-    if (vsFile.status === 'failed') {
-      throw new Error(`Falha ao processar arquivo no Vector Store: ${vsFile.id}`)
-    }
+    console.log('Arquivo anexado ao Vector Store:', vsFile.id, '| Status inicial:', vsFile.status)
 
     return {
       fileId: vsFile.id,
