@@ -13,7 +13,7 @@ const isClerkConfigured =
 
 export async function POST(req: Request) {
   try {
-    const { message, vectorStoreId, assistantId, threadId } = await req.json()
+    const { message, vectorStoreId, assistantId, threadId, fileName } = await req.json()
 
     if (!message) {
       return NextResponse.json({ error: 'Mensagem é requerida' }, { status: 400 })
