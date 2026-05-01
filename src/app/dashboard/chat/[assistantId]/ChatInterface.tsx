@@ -74,17 +74,9 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           setMessages(data.messages)
         }
 
-        // Tenta recuperar o nome do arquivo do título da thread (via lista de threads ou API)
-        // Por simplicidade, vamos buscar a thread no Supabase para pegar o título
-        const { supabaseAdmin } = await import('@/lib/supabase')
-        const { data: thread } = await supabaseAdmin
-          .from('threads')
-          .select('title')
-          .eq('openai_thread_id', initialThreadId)
-          .single()
-        
-        if (thread?.title?.startsWith('📄 ')) {
-          const extractedName = thread.title.split(' - ')[0].replace('📄 ', '')
+        // Recupera o nome do arquivo do título retornado pela API
+        if (data.title?.startsWith('📄 ')) {
+          const extractedName = data.title.split(' - ')[0].replace('📄 ', '')
           setFileName(extractedName)
         }
       } catch (error) {

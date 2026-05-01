@@ -59,7 +59,18 @@ export async function GET(req: Request) {
         history.push({ role: 'assistant', content: assistantText })
       }
 
-      return NextResponse.json({ messages: history })
+      // Busca detalhes da thread no banco de dados para pegar o título (nome do arquivo)
+      const { supabaseAdmin } = await import('@/lib/supabase')
+      const { data: thread } = await supabaseAdmin
+        .from('threads')
+        .select('title')
+        .eq('openai_thread_id', threadId)
+        .single()
+
+      return NextResponse.json({ 
+        messages: history,
+        title: thread?.title || null
+      })
     }
 
     // Suporte para Assistants API legada
