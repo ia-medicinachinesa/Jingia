@@ -5,6 +5,9 @@ import { db } from './db'
 /**
  * Utilitário para gerenciar Vector Stores da OpenAI vinculados aos usuários do Jing IA.
  * Seguindo a Arquitetura 2026 para análise de artigos científicos.
+ * 
+ * SDK v6.34+ usa openai.vectorStores (root, não beta) e
+ * openai.vectorStores.files.uploadAndPoll para upload direto.
  */
 export const vectorStoreProvider = {
   /**
@@ -22,10 +25,8 @@ export const vectorStoreProvider = {
       return user.vector_store_id
     }
 
-    // Criar na OpenAI
-    // Usamos o prefixo "JingIA_" para facilitar a identificação no dashboard
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const vectorStore = await (openaiAnalista as any).vectorStores.create({
+    // Criar na OpenAI (root-level, não beta)
+    const vectorStore = await openaiAnalista.vectorStores.create({
       name: `JingIA_Store_${clerkUserId}`,
     })
 
@@ -48,32 +49,21 @@ export const vectorStoreProvider = {
 
   /**
    * Faz o upload de um arquivo e o anexa a um Vector Store.
+   * Usa vectorStores.files.uploadAndPoll que faz upload + vinculação + aguarda processamento.
    * @param vectorStoreId ID do Vector Store na OpenAI
-   * @param file Arquivo do tipo File (do Buffer ou FormData)
+   * @param file Arquivo do tipo File (Web API File/Blob do FormData)
    */
   uploadAndAttachFile: async (vectorStoreId: string, file: File) => {
-    // 1. Upload do arquivo para a OpenAI com o propósito correto para 2026
-    // Nota: O SDK da OpenAI pode exigir um formato específico para o arquivo (ex: fs.ReadStream ou Buffer)
-    // No Next.js, 'file' costuma ser um Blob/File.
-    
-    const openaiFile = await openaiAnalista.files.create({
-      file: file,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      purpose: 'responses' as any, // Conforme Arquitetura 2026
-    })
-
-    // 2. Anexar ao Vector Store
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fileBatch = await (openaiAnalista as any).vectorStores.fileBatches.create(
+    // O SDK v6 aceita File/Blob diretamente no uploadAndPoll
+    // Este método faz tudo: upload do arquivo, vinculação ao vector store e polling até ficar pronto
+    const vsFile = await openaiAnalista.vectorStores.files.uploadAndPoll(
       vectorStoreId,
-      {
-        file_ids: [openaiFile.id]
-      }
+      file
     )
 
     return {
-      fileId: openaiFile.id,
-      batchId: fileBatch.id
+      fileId: vsFile.id,
+      status: vsFile.status
     }
   },
 
@@ -82,9 +72,8 @@ export const vectorStoreProvider = {
    */
   deleteFile: async (vectorStoreId: string, fileId: string) => {
     // Remove do Vector Store
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (openaiAnalista as any).vectorStores.files.del(vectorStoreId, fileId)
-    // Remove o arquivo físico
+    await openaiAnalista.vectorStores.files.delete(vectorStoreId, fileId)
+    // Remove o arquivo físico da OpenAI
     await openaiAnalista.files.delete(fileId)
   }
 }
