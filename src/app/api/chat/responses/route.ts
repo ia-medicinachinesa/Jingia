@@ -114,8 +114,11 @@ export async function POST(req: Request) {
                 // 2. Gerencia o Histórico de Conversas (Tabela threads)
                 if (!threadId && !isHistoryCreated) {
                   // Primeira mensagem: Criar entrada no histórico
-                  const title = message.length > 60 ? message.slice(0, 57) + '...' : message
-                  await threads.create(user.id, assistantId, responseId, title)
+                  let threadTitle = message.length > 60 ? message.slice(0, 57) + '...' : message
+                  if (fileName) {
+                    threadTitle = `📄 ${fileName} - ${threadTitle}`
+                  }
+                  await threads.create(user.id, assistantId, responseId, threadTitle)
                   isHistoryCreated = true
                 } else if (threadId) {
                   // Mensagem subsequente: Atualiza o ponteiro da thread para o ID mais recente

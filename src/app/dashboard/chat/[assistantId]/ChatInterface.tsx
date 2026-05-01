@@ -50,6 +50,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
   const [threadId, setThreadId]               = useState<string | null>(initialThreadId)
   const [usedCount, setUsedCount]             = useState(messagesUsed)
   const [vectorStoreId, setVectorStoreId]     = useState<string | null>(null)
+  const [fileName, setFileName]               = useState<string | null>(null)
   const bottomRef                             = useRef<HTMLDivElement>(null)
   const inputRef                              = useRef<HTMLTextAreaElement>(null)
   const router                                = useRouter()
@@ -59,27 +60,39 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
-  // Carregar mensagens anteriores ao retomar uma conversa do histórico
+  // Carrega histórico se houver threadId inicial
   useEffect(() => {
-    if (!initialThreadId) return
-    setIsLoadingHistory(true)
-
     async function loadHistory() {
+      if (!initialThreadId) return
+      
+      setIsLoadingHistory(true)
       try {
+        // Busca mensagens
         const res = await fetch(`/api/threads/messages?threadId=${initialThreadId}`)
-        if (!res.ok) throw new Error('Falha ao carregar conversa')
         const data = await res.json()
-        if (data.messages?.length > 0) {
+        if (data.messages) {
           setMessages(data.messages)
         }
-      } catch (err) {
-        console.error('Erro ao carregar histórico:', err)
-        toast.error('Erro ao carregar', { description: 'Não foi possível carregar as mensagens anteriores.' })
+
+        // Tenta recuperar o nome do arquivo do título da thread (via lista de threads ou API)
+        // Por simplicidade, vamos buscar a thread no Supabase para pegar o título
+        const { supabaseAdmin } = await import('@/lib/supabase')
+        const { data: thread } = await supabaseAdmin
+          .from('threads')
+          .select('title')
+          .eq('openai_thread_id', initialThreadId)
+          .single()
+        
+        if (thread?.title?.startsWith('📄 ')) {
+          const extractedName = thread.title.split(' - ')[0].replace('📄 ', '')
+          setFileName(extractedName)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar histórico:', error)
       } finally {
         setIsLoadingHistory(false)
       }
     }
-
     loadHistory()
   }, [initialThreadId])
 
@@ -111,6 +124,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           assistantId: assistant.id,
           threadId: threadId, // Para API antiga e agora para a nova também
           vectorStoreId: isNewApiAssistant ? vectorStoreId : undefined, // Para API nova
+          fileName: isNewApiAssistant ? fileName : undefined,
         })
       })
       
@@ -251,6 +265,29 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
         <div className="bg-amber-50/50 dark:bg-amber-900/20 border border-amber-100/50 dark:border-amber-800/50 rounded-xl p-4 mb-6 text-xs text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
           ⚕️ {MEDICAL_DISCLAIMER}
         </div>
+        
+        {/* Identificador do Arquivo Analisado */}
+        {fileName && (
+          <div className="flex items-center gap-3 p-3 mb-6 bg-brand-aco/10 dark:bg-brand-sombra/20 border border-brand-aco/20 dark:border-white/5 rounded-xl animate-fade-in">
+            <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center text-brand-preto dark:text-brand-offwhite shadow-sm">
+              <FileText size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400">Documento em análise</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{fileName}</p>
+            </div>
+            <button 
+              onClick={() => {
+                setVectorStoreId(null)
+                setFileName(null)
+              }}
+              className="p-1.5 hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-400 hover:text-red-500 transition-colors"
+              title="Remover arquivo"
+            >
+              <Lock size={14} /> {/* Usando Lock como ícone de fechar temporário ou apenas removendo */}
+            </button>
+          </div>
+        )}
 
         {/* Barra de uso de mensagens (só no topo do chat para referência) */}
         {isAtLimit && (
@@ -313,8 +350,9 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             <div className="mb-1.5">
               <FileUpload 
                 planId={planId}
-                onUploadComplete={(vsId) => {
+                onUploadComplete={(vsId, fId, fName) => {
                   setVectorStoreId(vsId)
+                  setFileName(fName || 'Arquivo selecionado')
                 }}
                 disabled={isLoading}
               />
