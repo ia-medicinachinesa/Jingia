@@ -50,7 +50,8 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
   const [threadId, setThreadId]               = useState<string | null>(initialThreadId)
   const [usedCount, setUsedCount]             = useState(messagesUsed)
   const [vectorStoreId, setVectorStoreId]     = useState<string | null>(null)
-  const [fileName, setFileName]               = useState<string | null>(null)
+  interface FileItem { id: string; name: string }
+  const [files, setFiles]                     = useState<FileItem[]>([])
   const bottomRef                             = useRef<HTMLDivElement>(null)
   const inputRef                              = useRef<HTMLTextAreaElement>(null)
   const router                                = useRouter()
@@ -74,10 +75,11 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           setMessages(data.messages)
         }
 
-        // Recupera o nome do arquivo do título retornado pela API
+        // Recupera os nomes dos arquivos do título retornado pela API
         if (data.title?.startsWith('📄 ')) {
-          const extractedName = data.title.split(' - ')[0].replace('📄 ', '')
-          setFileName(extractedName)
+          const titleContent = data.title.split(' - ')[0].replace('📄 ', '')
+          const names = titleContent.split(', ')
+          setFiles(names.map(name => ({ id: 'history', name })))
         }
       } catch (error) {
         console.error('Erro ao carregar histórico:', error)
@@ -114,9 +116,11 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
         body: JSON.stringify({ 
           message: trimmed, 
           assistantId: assistant.id,
-          threadId: threadId, // Para API antiga e agora para a nova também
-          vectorStoreId: isNewApiAssistant ? vectorStoreId : undefined, // Para API nova
-          fileName: isNewApiAssistant ? fileName : undefined,
+          threadId: threadId, 
+          vectorStoreId: isNewApiAssistant ? vectorStoreId : undefined,
+          fileName: isNewApiAssistant && files.length > 0 
+            ? files.map(f => f.name).join(', ') 
+            : undefined,
         })
       })
       
@@ -258,28 +262,30 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           ⚕️ {MEDICAL_DISCLAIMER}
         </div>
         
-        {/* Identificador do Arquivo Analisado (Estilo Gemini/GPT - Card na Timeline) */}
-        {fileName && (
-          <div className="flex justify-start mb-8 animate-fade-in">
-            <div className="bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-white/5 rounded-2xl p-4 flex items-center gap-4 shadow-sm backdrop-blur-sm group transition-all hover:shadow-md max-w-[85%] sm:max-w-[70%]">
-              <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center text-brand-preto dark:text-brand-offwhite shadow-sm ring-1 ring-gray-100 dark:ring-white/5">
-                <FileText size={24} />
+        {/* Identificador de Múltiplos Arquivos (Estilo Gemini/GPT) */}
+        {files.length > 0 && (
+          <div className="flex flex-wrap gap-3 mb-8 animate-fade-in">
+            {files.map((file, idx) => (
+              <div key={idx} className="bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-white/5 rounded-2xl p-3 flex items-center gap-3 shadow-sm backdrop-blur-sm group transition-all hover:shadow-md max-w-full sm:max-w-[300px]">
+                <div className="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center text-brand-preto dark:text-brand-offwhite shadow-sm ring-1 ring-gray-100 dark:ring-white/5">
+                  <FileText size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-widest font-black text-gray-400 dark:text-gray-500 mb-0.5">Anexo</p>
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{file.name}</h4>
+                </div>
+                <button 
+                  onClick={() => {
+                    setFiles(prev => prev.filter((_, i) => i !== idx))
+                    if (files.length === 1) setVectorStoreId(null)
+                  }}
+                  className="p-1 hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-400 hover:text-red-500 transition-all"
+                  title="Remover arquivo"
+                >
+                  <Lock size={14} />
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] uppercase tracking-widest font-black text-gray-400 dark:text-gray-500 mb-1">Documento Analisado</p>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{fileName}</h4>
-              </div>
-              <button 
-                onClick={() => {
-                  setVectorStoreId(null)
-                  setFileName(null)
-                }}
-                className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-400 hover:text-red-500 transition-all"
-                title="Remover arquivo"
-              >
-                <Lock size={14} />
-              </button>
-            </div>
+            ))}
           </div>
         )}
 
@@ -346,7 +352,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
                 planId={planId}
                 onUploadComplete={(vsId, fId, fName) => {
                   setVectorStoreId(vsId)
-                  setFileName(fName || 'Arquivo selecionado')
+                  setFiles(prev => [...prev, { id: fId, name: fName || 'Arquivo selecionado' }])
                 }}
                 disabled={isLoading}
               />
