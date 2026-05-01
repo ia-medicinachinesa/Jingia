@@ -266,26 +266,28 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           ⚕️ {MEDICAL_DISCLAIMER}
         </div>
         
-        {/* Identificador do Arquivo Analisado */}
+        {/* Identificador do Arquivo Analisado (Estilo Gemini/GPT - Card na Timeline) */}
         {fileName && (
-          <div className="flex items-center gap-3 p-3 mb-6 bg-brand-aco/10 dark:bg-brand-sombra/20 border border-brand-aco/20 dark:border-white/5 rounded-xl animate-fade-in">
-            <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center text-brand-preto dark:text-brand-offwhite shadow-sm">
-              <FileText size={18} />
+          <div className="flex justify-start mb-8 animate-fade-in">
+            <div className="bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-white/5 rounded-2xl p-4 flex items-center gap-4 shadow-sm backdrop-blur-sm group transition-all hover:shadow-md max-w-[85%] sm:max-w-[70%]">
+              <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center text-brand-preto dark:text-brand-offwhite shadow-sm ring-1 ring-gray-100 dark:ring-white/5">
+                <FileText size={24} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-widest font-black text-gray-400 dark:text-gray-500 mb-1">Documento Analisado</p>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{fileName}</h4>
+              </div>
+              <button 
+                onClick={() => {
+                  setVectorStoreId(null)
+                  setFileName(null)
+                }}
+                className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-400 hover:text-red-500 transition-all"
+                title="Remover arquivo"
+              >
+                <Lock size={14} />
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400">Documento em análise</p>
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{fileName}</p>
-            </div>
-            <button 
-              onClick={() => {
-                setVectorStoreId(null)
-                setFileName(null)
-              }}
-              className="p-1.5 hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-400 hover:text-red-500 transition-colors"
-              title="Remover arquivo"
-            >
-              <Lock size={14} /> {/* Usando Lock como ícone de fechar temporário ou apenas removendo */}
-            </button>
           </div>
         )}
 
