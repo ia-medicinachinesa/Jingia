@@ -68,11 +68,12 @@ export async function POST(req: Request) {
       ? PROMPTS[assistantId] 
       : "Você é um assistente clínico de Inteligência Artificial especializado na Medicina Tradicional Chinesa."
 
-    // 5. Chamada para a Responses API (OpenAI 2026)
+    // 5. Chamada para a Responses API (OpenAI 2026) com Streaming ativado
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await (openaiAnalista as any).responses.create({
       model: "gpt-4.1",
       store: true,
+      stream: true, // ESSENCIAL para habilitar .toReadableStream()
       previous_response_id: user.last_response_id || undefined,
       instructions: systemPrompt,
       input: [
@@ -90,10 +91,14 @@ export async function POST(req: Request) {
       throw new Error("Resposta vazia da OpenAI")
     }
 
-    // 3. Atualizar o ID da última resposta de forma assíncrona
+    // 3. (Temporário) Atualizar o ID da última resposta
+    // No modo streaming, o ID vem dentro dos eventos do stream. 
+    // Vamos desabilitar o update imediato para o chat fluir.
+    /*
     if (response.id) {
       await db.updateLastResponseId(userId, response.id)
     }
+    */
 
     // 4. Incrementar contador de mensagens
     await db.incrementMessageCount(userId)
