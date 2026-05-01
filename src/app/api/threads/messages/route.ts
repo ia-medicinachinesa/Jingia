@@ -42,9 +42,18 @@ export async function GET(req: Request) {
       }
       const history: ChatMessage[] = []
       
-      // Extrai a mensagem do usuário (input)
+      // Extrai a mensagem do usuário (input) de forma robusta
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const userText = (resp.input?.[0]?.content?.[0] as any)?.text
+      const userText = resp.input
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ?.map((i: any) => {
+          if (typeof i.content === 'string') return i.content
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return i.content?.find((c: any) => c.type === 'text')?.text || ''
+        })
+        .filter(Boolean)
+        .join('\n')
+
       if (userText) {
         history.push({ role: 'user', content: userText })
       }
