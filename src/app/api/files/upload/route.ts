@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { vectorStoreProvider } from '@/lib/vector-store'
-import { Readable } from 'stream'
 import { Buffer } from 'buffer'
 
 export const dynamic = 'force-dynamic'
@@ -53,20 +52,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Arquivo muito grande. O limite é 20MB.' }, { status: 400 })
     }
 
-    // 4. Converter Web API File → Node.js Readable stream
-    // O SDK da OpenAI espera um stream Node.js com .path (nome do arquivo),
-    // não o File da Web API que o Next.js entrega via formData.
+    // 4. Preparar o arquivo para a OpenAI usando o utilitário oficial toFile
+    // Isso garante que metadados (nome, extensão) sejam preservados corretamente para o parsing de PDFs/Docs
+    const { toFile } = await import('openai')
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    const stream = Readable.from(buffer)
-    // Essencial: o SDK usa .path para determinar o nome e extensão do arquivo
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(stream as any).path = file.name
+    const fileForOpenAI = await toFile(buffer, file.name)
 
     // 5. Integração com OpenAI Vector Store
     const vectorStoreId = await vectorStoreProvider.getOrCreateVectorStore(userId)
     
-    const { fileId } = await vectorStoreProvider.uploadAndAttachFile(vectorStoreId, stream)
+    const { fileId } = await vectorStoreProvider.uploadAndAttachFile(vectorStoreId, fileForOpenAI)
 
     return NextResponse.json({ 
       success: true, 
@@ -75,9 +71,16 @@ export async function POST(req: Request) {
       fileName: file.name 
     })
 
-  } catch (error) {
-    console.error('Erro no upload de arquivo:', error)
-    const message = error instanceof Error ? error.message : 'Erro interno no processamento do arquivo.'
-    return NextResponse.json({ error: message }, { status: 500 })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    console.error('Erro detalhado no upload de arquivo:', error)
+    
+    // Tenta capturar a mensagem de erro específica da OpenAI se houver
+    const errorMessage = error.response?.data?.error?.message || error.message || 'Erro desconhecido no servidor'
+    
+    return NextResponse.json({ 
+      error: `Erro no processamento: ${errorMessage}`,
+      details: error.stack
+    }, { status: 500 })
   }
 }

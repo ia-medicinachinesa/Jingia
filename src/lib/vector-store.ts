@@ -51,7 +51,7 @@ export const vectorStoreProvider = {
    * Faz o upload de um arquivo e o anexa a um Vector Store.
    * Usa vectorStores.files.uploadAndPoll que faz upload + vinculação + aguarda processamento.
    * @param vectorStoreId ID do Vector Store na OpenAI
-   * @param file Stream Node.js com .path definido (convertido na rota de upload)
+   * @param file Objeto de arquivo compatível com o SDK (OpenAI.Uploadable)
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   uploadAndAttachFile: async (vectorStoreId: string, file: any) => {
