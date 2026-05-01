@@ -36,18 +36,25 @@ export async function GET(req: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const resp = await (openaiAnalista as any).responses.retrieve(threadId)
       
-      const history: any[] = []
+      interface ChatMessage {
+        role: 'user' | 'assistant'
+        content: string
+      }
+      const history: ChatMessage[] = []
       
       // Extrai a mensagem do usuário (input)
-      const userText = resp.input?.[0]?.content?.[0]?.text
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const userText = (resp.input?.[0]?.content?.[0] as any)?.text
       if (userText) {
         history.push({ role: 'user', content: userText })
       }
       
       // Extrai a resposta do assistente (output)
       // O output pode ter múltiplos itens, buscamos o primeiro texto
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const assistantItem = resp.output?.find((o: any) => o.type === 'message')
-      const assistantText = assistantItem?.content?.[0]?.text
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const assistantText = (assistantItem?.content?.[0] as any)?.text
       if (assistantText) {
         history.push({ role: 'assistant', content: assistantText })
       }
@@ -63,8 +70,9 @@ export async function GET(req: Request) {
 
     const messages = response.data.map(msg => {
       let content = ''
-      if (msg.content[0]?.type === 'text') {
-        content = (msg.content[0] as any).text.value
+      const firstContent = msg.content[0]
+      if (firstContent?.type === 'text') {
+        content = firstContent.text.value
       }
       return {
         role: msg.role as 'user' | 'assistant',
