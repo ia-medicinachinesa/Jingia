@@ -29,6 +29,33 @@ export async function GET(req: Request) {
     }
 
     // ── Buscar mensagens na API da OpenAI ─────────────────────
+    
+    // Suporte para a nova Responses API v6 (Analista de Artigos)
+    if (threadId.startsWith('resp_')) {
+      const { openaiAnalista } = await import('@/lib/openai')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resp = await (openaiAnalista as any).responses.retrieve(threadId)
+      
+      const history: any[] = []
+      
+      // Extrai a mensagem do usuário (input)
+      const userText = resp.input?.[0]?.content?.[0]?.text
+      if (userText) {
+        history.push({ role: 'user', content: userText })
+      }
+      
+      // Extrai a resposta do assistente (output)
+      // O output pode ter múltiplos itens, buscamos o primeiro texto
+      const assistantItem = resp.output?.find((o: any) => o.type === 'message')
+      const assistantText = assistantItem?.content?.[0]?.text
+      if (assistantText) {
+        history.push({ role: 'assistant', content: assistantText })
+      }
+
+      return NextResponse.json({ messages: history })
+    }
+
+    // Suporte para Assistants API legada
     const response = await openai.beta.threads.messages.list(threadId, {
       order: 'asc',
       limit: 100,
@@ -37,7 +64,7 @@ export async function GET(req: Request) {
     const messages = response.data.map(msg => {
       let content = ''
       if (msg.content[0]?.type === 'text') {
-        content = msg.content[0].text.value
+        content = (msg.content[0] as any).text.value
       }
       return {
         role: msg.role as 'user' | 'assistant',
