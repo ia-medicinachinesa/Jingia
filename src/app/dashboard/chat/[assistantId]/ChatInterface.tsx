@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Send, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, LucideIcon } from 'lucide-react'
+import { Send, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, LucideIcon, Lock } from 'lucide-react'
 import { AssistantConfig } from '@/lib/assistants'
 import { PlanId } from '@/lib/plans'
 import ChatMessage from '@/components/ChatMessage'
