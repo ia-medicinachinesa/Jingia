@@ -108,7 +108,10 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     // Integração Real da OpenAI via nossa API backend (Streaming)
     try {
       const isNewApiAssistant = assistant.id === 'ASS-07' || assistant.id === 'ASS-06'
-      const apiUrl = isNewApiAssistant ? '/api/chat/responses' : '/api/chat'
+      // Se há arquivos anexados, usar a Responses API que suporta file_search
+      const hasFiles = !!vectorStoreId
+      const useResponsesApi = isNewApiAssistant || hasFiles
+      const apiUrl = useResponsesApi ? '/api/chat/responses' : '/api/chat'
       
       const res = await fetch(apiUrl, {
         method: 'POST',
@@ -117,8 +120,8 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           message: trimmed, 
           assistantId: assistant.id,
           threadId: threadId, 
-          vectorStoreId: isNewApiAssistant ? vectorStoreId : undefined,
-          fileName: isNewApiAssistant && files.length > 0 
+          vectorStoreId: useResponsesApi ? vectorStoreId : undefined,
+          fileName: useResponsesApi && files.length > 0 
             ? files.map(f => f.name).join(', ') 
             : undefined,
         })
@@ -345,19 +348,17 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
       <div className="p-4 md:p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
          <form onSubmit={handleSubmit} className="flex gap-3 items-end relative">
           
-          {/* Componente de Upload para Analistas (Artigos e Exames) */}
-          {(assistant.id === 'ASS-07' || assistant.id === 'ASS-06') && (
-            <div className="mb-1.5">
-              <FileUpload 
-                planId={planId}
-                onUploadComplete={(vsId, fId, fName) => {
-                  setVectorStoreId(vsId)
-                  setFiles(prev => [...prev, { id: fId, name: fName || 'Arquivo selecionado' }])
-                }}
-                disabled={isLoading}
-              />
-            </div>
-          )}
+          {/* Componente de Upload de Arquivos (disponível para todos os assistentes) */}
+          <div className="mb-1.5">
+            <FileUpload 
+              planId={planId}
+              onUploadComplete={(vsId, fId, fName) => {
+                setVectorStoreId(vsId)
+                setFiles(prev => [...prev, { id: fId, name: fName || 'Arquivo selecionado' }])
+              }}
+              disabled={isLoading}
+            />
+          </div>
 
           <textarea
             ref={inputRef}
