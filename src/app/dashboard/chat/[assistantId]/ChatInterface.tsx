@@ -79,7 +79,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
         if (data.title?.startsWith('📄 ')) {
           const titleContent = data.title.split(' - ')[0].replace('📄 ', '')
           const names = titleContent.split(', ')
-          setFiles(names.map(name => ({ id: 'history', name })))
+          setFiles(names.map((name: string) => ({ id: 'history', name })))
         }
       } catch (error) {
         console.error('Erro ao carregar histórico:', error)
