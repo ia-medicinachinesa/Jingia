@@ -25,7 +25,7 @@ interface Props {
 export default function AssistantCard({ assistant, planId }: Props) {
   const hasAccess = canAccessAssistant(assistant.id, planId)
   // Assistentes de nova geração (Responses API) estão sempre configurados internamente
-  const isNewApi = ['ASS-06', 'ASS-07'].includes(assistant.id)
+  const isNewApi = ['ASS-05', 'ASS-06', 'ASS-07'].includes(assistant.id)
   const isConfigured = isNewApi || (assistant.openaiId && !assistant.openaiId.includes('placeholder'))
 
   // Encontra o plano mínimo necessário para exibir no CTA
@@ -63,6 +63,13 @@ export default function AssistantCard({ assistant, planId }: Props) {
           {requiredPlan === 'profissional' && (
             <span className="flex items-center px-2 py-1 text-[10px] uppercase font-black tracking-widest text-white bg-brand-preto dark:bg-brand-offwhite dark:text-brand-preto rounded-md shadow-sm">
               PRO
+            </span>
+          )}
+
+          {assistant.id === 'ASS-05' && (
+            <span className="flex items-center gap-1 text-[10px] uppercase font-black tracking-wider text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-950/40 px-2.5 py-1 rounded-lg border border-green-200/50 dark:border-green-900/50 shadow-sm">
+              <Sparkles size={11} className="animate-pulse text-green-600 dark:text-green-400" />
+              Lançamento
             </span>
           )}
 
