@@ -107,7 +107,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
 
     // Integração Real da OpenAI via nossa API backend (Streaming)
     try {
-      const isNewApiAssistant = assistant.id === 'ASS-07' || assistant.id === 'ASS-06'
+      const isNewApiAssistant = assistant.id === 'ASS-07' || assistant.id === 'ASS-06' || assistant.id === 'ASS-05'
       // Se há arquivos anexados, usar a Responses API que suporta file_search
       const hasFiles = !!vectorStoreId
       const useResponsesApi = isNewApiAssistant || hasFiles

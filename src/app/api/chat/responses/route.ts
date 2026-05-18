@@ -47,9 +47,16 @@ export async function POST(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const content: any[] = [{ type: "input_text", text: message }]
     
-    // 3. Vector Stores (Usuário + Conhecimento Base) - Sanitizado com .trim()
+    // Mapeamento de Vector Stores específicas por Assistente
+    const ASSISTANT_VECTOR_STORES: Record<string, string> = {
+      'ASS-05': 'vs_6a0a572794488191b7ad8481f8686685'
+    }
+    const assistantVectorStore = ASSISTANT_VECTOR_STORES[assistantId]
+    
+    // 3. Vector Stores (Usuário + Conhecimento Base do Assistente + Conhecimento Base Geral) - Sanitizado com .trim()
     const storeIds: string[] = [
       vectorStoreId,
+      assistantVectorStore,
       process.env.OPENAI_CORE_KNOWLEDGE_ID
     ]
       .filter((id): id is string => Boolean(id))

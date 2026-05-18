@@ -49,7 +49,7 @@ export const ASSISTANTS: AssistantConfig[] = [
   },
   {
     id:          'ASS-05',
-    name:        'Fotobiomodulação',
+    name:        'Fotobiomodulação IA',
     description: 'Laser e LED terapêutico para acupunturistas.',
     icon:        '💡',
     category:    'Técnicas Especializadas',
