@@ -80,7 +80,8 @@ export async function POST(req: Request) {
     const responseStream = await (openaiAnalista as any).responses.create({
       model: "gpt-4.1",
       store: true,
-      stream: true, 
+      stream: true,
+      max_output_tokens: 16384,
       previous_response_id: threadId || undefined,
       instructions: systemPrompt,
       input: [
@@ -101,16 +102,22 @@ export async function POST(req: Request) {
     // 6. Incrementar contador de mensagens
     await db.incrementMessageCount(userId)
 
+    // ═══ DIAGNÓSTICO: Log detalhado dos Vector Stores utilizados ═══
+    console.log(`[RESPONSES DIAG] Assistente: ${assistantId} | Stores: [${storeIds.join(', ')}] | Tools: ${JSON.stringify(tools.map((t: { type: string }) => t.type))}`)
+
     // 7. Preparar Stream Manual para capturar IDs e atualizar Banco
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
         try {
           let isHistoryCreated = false
+          const eventTypeCounts: Record<string, number> = {}
 
           // Iterar sobre os eventos da OpenAI
           for await (const chunk of responseStream) {
-            
+            // ═══ DIAGNÓSTICO: Contar tipos de eventos ═══
+            eventTypeCounts[chunk.type] = (eventTypeCounts[chunk.type] || 0) + 1
+
             // Gerenciamento de Histórico (threads) e Contexto
             if (chunk.type === 'response.created') {
               const responseId = chunk.response?.id
@@ -129,7 +136,6 @@ export async function POST(req: Request) {
                   isHistoryCreated = true
                 } else if (threadId) {
                   // Mensagem subsequente: Atualiza o ponteiro da thread para o ID mais recente
-                  // Importamos o supabaseAdmin dinamicamente ou usamos via db se disponível
                   const { supabaseAdmin } = await import('@/lib/supabase')
                   await supabaseAdmin
                     .from('threads')
@@ -142,8 +148,37 @@ export async function POST(req: Request) {
               }
             }
             
+            // ═══ DIAGNÓSTICO: Logar eventos de ferramentas (file_search) ═══
+            if (chunk.type === 'response.output_item.added') {
+              console.log(`[RESPONSES DIAG] Output item adicionado: type=${chunk.item?.type}, id=${chunk.item?.id}`)
+            }
+            
+            if (chunk.type === 'response.output_item.done') {
+              const item = chunk.item
+              if (item?.type === 'file_search_call') {
+                console.log(`[RESPONSES DIAG] file_search concluído: status=${item.status}, resultados=${item.results?.length ?? 'N/A'}`)
+              }
+            }
+
             if (chunk.type === 'response.done') {
-              // Finalização opcional de logs
+              // ═══ DIAGNÓSTICO: Resumo completo da resposta ═══
+              const resp = chunk.response
+              console.log(`[RESPONSES DIAG] ═══ RESPONSE.DONE ═══`)
+              console.log(`[RESPONSES DIAG] Status: ${resp?.status}`)
+              console.log(`[RESPONSES DIAG] Output items: ${resp?.output?.length ?? 0}`)
+              console.log(`[RESPONSES DIAG] Usage: input=${resp?.usage?.input_tokens}, output=${resp?.usage?.output_tokens}`)
+              console.log(`[RESPONSES DIAG] Incomplete reason: ${resp?.incomplete_details?.reason ?? 'N/A'}`)
+              console.log(`[RESPONSES DIAG] Eventos recebidos:`, JSON.stringify(eventTypeCounts))
+              // Logar tipos dos output items
+              if (resp?.output) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                resp.output.forEach((item: any, idx: number) => {
+                  console.log(`[RESPONSES DIAG] Output[${idx}]: type=${item.type}, status=${item.status ?? 'N/A'}`)
+                  if (item.type === 'file_search_call') {
+                    console.log(`[RESPONSES DIAG]   file_search results: ${item.results?.length ?? 0} documentos`)
+                  }
+                })
+              }
             }
             
             // Repassa o evento para o frontend
