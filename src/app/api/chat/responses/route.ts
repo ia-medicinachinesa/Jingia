@@ -111,81 +111,81 @@ export async function POST(req: Request) {
       async start(controller) {
         try {
           let isHistoryCreated = false
-          const eventTypeCounts: Record<string, number> = {}
+          let hasToolCall = false
+          let currentResponseId: string | null = null
 
-          // Iterar sobre os eventos da OpenAI
-          for await (const chunk of responseStream) {
-            // ═══ DIAGNÓSTICO: Contar tipos de eventos ═══
-            eventTypeCounts[chunk.type] = (eventTypeCounts[chunk.type] || 0) + 1
-
-            // Gerenciamento de Histórico (threads) e Contexto
-            if (chunk.type === 'response.created') {
-              const responseId = chunk.response?.id
-              if (responseId) {
-                // 1. Atualiza o contexto global do usuário
-                await db.updateLastResponseId(userId, responseId)
-
-                // 2. Gerencia o Histórico de Conversas (Tabela threads)
-                if (!threadId && !isHistoryCreated) {
-                  // Primeira mensagem: Criar entrada no histórico
-                  let threadTitle = message.length > 60 ? message.slice(0, 57) + '...' : message
-                  if (fileName) {
-                    threadTitle = `📄 ${fileName} - ${threadTitle}`
+          // Função auxiliar para processar um stream da Responses API
+          const processResponseStream = async (streamToProcess: any, isSecondTurn = false) => {
+            for await (const chunk of streamToProcess) {
+              if (chunk.type === 'response.created') {
+                const responseId = chunk.response?.id
+                if (responseId) {
+                  currentResponseId = responseId
+                  // 1. Atualiza o contexto global do usuário (só no primeiro turno)
+                  if (!isSecondTurn) {
+                    await db.updateLastResponseId(userId, responseId)
                   }
-                  await threads.create(user.id, assistantId, responseId, threadTitle)
-                  isHistoryCreated = true
-                } else if (threadId) {
-                  // Mensagem subsequente: Atualiza o ponteiro da thread para o ID mais recente
-                  const { supabaseAdmin } = await import('@/lib/supabase')
-                  await supabaseAdmin
-                    .from('threads')
-                    .update({ 
-                      openai_thread_id: responseId,
-                      updated_at: new Date().toISOString()
-                    })
-                    .eq('openai_thread_id', threadId)
+
+                  // 2. Gerencia o Histórico de Conversas (Tabela threads)
+                  if (!threadId && !isHistoryCreated && !isSecondTurn) {
+                    let threadTitle = message.length > 60 ? message.slice(0, 57) + '...' : message
+                    if (fileName) {
+                      threadTitle = `📄 ${fileName} - ${threadTitle}`
+                    }
+                    await threads.create(user!.id, assistantId, responseId, threadTitle)
+                    isHistoryCreated = true
+                  } else if (threadId && !isSecondTurn) {
+                    const { supabaseAdmin } = await import('@/lib/supabase')
+                    await supabaseAdmin
+                      .from('threads')
+                      .update({ 
+                        openai_thread_id: responseId,
+                        updated_at: new Date().toISOString()
+                      })
+                      .eq('openai_thread_id', threadId)
+                  }
                 }
               }
-            }
-            
-            // ═══ DIAGNÓSTICO: Logar eventos de ferramentas (file_search) ═══
-            if (chunk.type === 'response.output_item.added') {
-              console.log(`[RESPONSES DIAG] Output item adicionado: type=${chunk.item?.type}, id=${chunk.item?.id}`)
-            }
-            
-            if (chunk.type === 'response.output_item.done') {
-              const item = chunk.item
-              if (item?.type === 'file_search_call') {
-                console.log(`[RESPONSES DIAG] file_search concluído: status=${item.status}, resultados=${item.results?.length ?? 'N/A'}`)
-              }
-            }
 
-            if (chunk.type === 'response.done') {
-              // ═══ DIAGNÓSTICO: Resumo completo da resposta ═══
-              const resp = chunk.response
-              console.log(`[RESPONSES DIAG] ═══ RESPONSE.DONE ═══`)
-              console.log(`[RESPONSES DIAG] Status: ${resp?.status}`)
-              console.log(`[RESPONSES DIAG] Output items: ${resp?.output?.length ?? 0}`)
-              console.log(`[RESPONSES DIAG] Usage: input=${resp?.usage?.input_tokens}, output=${resp?.usage?.output_tokens}`)
-              console.log(`[RESPONSES DIAG] Incomplete reason: ${resp?.incomplete_details?.reason ?? 'N/A'}`)
-              console.log(`[RESPONSES DIAG] Eventos recebidos:`, JSON.stringify(eventTypeCounts))
-              // Logar tipos dos output items
-              if (resp?.output) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                resp.output.forEach((item: any, idx: number) => {
-                  console.log(`[RESPONSES DIAG] Output[${idx}]: type=${item.type}, status=${item.status ?? 'N/A'}`)
-                  if (item.type === 'file_search_call') {
-                    console.log(`[RESPONSES DIAG]   file_search results: ${item.results?.length ?? 0} documentos`)
-                  }
-                })
+              // Detecta se a IA chamou o file_search
+              if (chunk.type === 'response.output_item.done' && chunk.item?.type === 'file_search_call') {
+                hasToolCall = true
+              }
+
+              // Repassa o evento para o frontend (escondemos o response.done do primeiro turno se houver tool call)
+              if (chunk.type === 'response.done') {
+                if (!hasToolCall || isSecondTurn) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+                }
+              } else {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
               }
             }
-            
-            // Repassa o evento para o frontend
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
           }
-          
-          // Sinaliza fim para parsers que esperam [DONE]
+
+          // Inicia o processamento do primeiro turno
+          await processResponseStream(responseStream, false)
+
+          // ═══ NOVO LOOP: Se o modelo chamou uma ferramenta, iniciamos o 2º turno automaticamente ═══
+          if (hasToolCall && currentResponseId) {
+            console.log(`[RESPONSES DIAG] Ferramenta acionada. Iniciando 2º Turno para gerar texto com id ${currentResponseId}...`)
+            
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const responseStream2 = await (openaiAnalista as any).responses.create({
+              model: "gpt-4.1",
+              store: true,
+              stream: true, 
+              max_output_tokens: 16384,
+              previous_response_id: currentResponseId, // Continua a thread
+              instructions: systemPrompt,
+              tools: tools as any,
+              input: [] // Array vazio força o modelo a olhar para os resultados da ferramenta e continuar
+            })
+
+            await processResponseStream(responseStream2, true)
+          }
+
+          // Sinaliza fim definitivo para parsers que esperam [DONE]
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
         } catch (err) {
           console.error("Erro no processamento da stream:", err)
