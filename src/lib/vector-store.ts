@@ -49,25 +49,27 @@ export const vectorStoreProvider = {
 
   /**
    * Faz o upload de um arquivo e o anexa a um Vector Store.
-   * Usa vectorStores.files.uploadAndPoll que faz upload + vinculação + aguarda processamento.
+   * Usa uploadAndPoll que faz upload + vinculação + AGUARDA indexação completa.
+   * Isso garante que o file_search encontrará o conteúdo quando o usuário enviar a mensagem.
    * @param vectorStoreId ID do Vector Store na OpenAI
    * @param file Objeto de arquivo compatível com o SDK (OpenAI.Uploadable)
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   uploadAndAttachFile: async (vectorStoreId: string, file: any) => {
-    // 1. Upload do arquivo para a OpenAI (sem aguardar indexação completa)
-    const uploadedFile = await openaiAnalista.files.create({
-      file,
-      purpose: 'assistants'
-    })
-
-    // 2. Vincula o arquivo ao Vector Store do usuário
-    const vsFile = await openaiAnalista.vectorStores.files.create(
+    // Upload + vinculação + aguarda indexação completa (polling automático)
+    // Isso resolve o bug onde file_search retornava vazio porque o arquivo
+    // ainda estava sendo indexado quando o usuário enviava a mensagem.
+    const vsFile = await openaiAnalista.vectorStores.files.uploadAndPoll(
       vectorStoreId,
-      { file_id: uploadedFile.id }
+      file
     )
 
-    console.log('Arquivo anexado ao Vector Store:', vsFile.id, '| Status inicial:', vsFile.status)
+    console.log('Arquivo indexado no Vector Store:', vsFile.id, '| Status final:', vsFile.status)
+
+    if (vsFile.status === 'failed') {
+      console.error('Falha na indexação do arquivo:', vsFile.id, '| Erro:', vsFile.last_error)
+      throw new Error(`Falha ao processar o arquivo: ${vsFile.last_error?.message || 'erro desconhecido'}`)
+    }
 
     return {
       fileId: vsFile.id,
