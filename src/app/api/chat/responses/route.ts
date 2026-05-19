@@ -76,6 +76,10 @@ export async function POST(req: Request) {
       : "Você é um assistente clínico de Inteligência Artificial especializado na Medicina Tradicional Chinesa."
 
     // 5. Chamada para a Responses API (OpenAI 2026) com Streaming ativado
+    // Quando há tools (file_search), usamos tool_choice: "required" para forçar
+    // a busca ANTES da geração de texto. Isso garante que o modelo tenha
+    // o conteúdo do arquivo no contexto antes de escrever a análise.
+    const hasTools = tools.length > 0
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const responseStream = await (openaiAnalista as any).responses.create({
       model: "gpt-4.1",
@@ -92,7 +96,7 @@ export async function POST(req: Request) {
       ],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
-      tool_choice: "auto"
+      tool_choice: hasTools ? "required" : "auto"
     })
 
     if (!responseStream) {
@@ -102,91 +106,44 @@ export async function POST(req: Request) {
     // 6. Incrementar contador de mensagens
     await db.incrementMessageCount(userId)
 
-    // ═══ DIAGNÓSTICO: Log detalhado dos Vector Stores utilizados ═══
-    console.log(`[RESPONSES DIAG] Assistente: ${assistantId} | Stores: [${storeIds.join(', ')}] | Tools: ${JSON.stringify(tools.map((t: { type: string }) => t.type))}`)
-
     // 7. Preparar Stream Manual para capturar IDs e atualizar Banco
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
         try {
           let isHistoryCreated = false
-          let hasToolCall = false
-          let currentResponseId: string | null = null
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const processResponseStream = async (streamToProcess: any, isSecondTurn = false) => {
-            for await (const chunk of streamToProcess) {
-              if (chunk.type === 'response.created') {
-                const responseId = chunk.response?.id
-                if (responseId) {
-                  currentResponseId = responseId
-                  // 1. Atualiza o contexto global do usuário (só no primeiro turno)
-                  if (!isSecondTurn) {
-                    await db.updateLastResponseId(userId, responseId)
+          for await (const chunk of responseStream) {
+            // Gerenciamento de Histórico (threads) e Contexto
+            if (chunk.type === 'response.created') {
+              const responseId = chunk.response?.id
+              if (responseId) {
+                await db.updateLastResponseId(userId, responseId)
+
+                if (!threadId && !isHistoryCreated) {
+                  let threadTitle = message.length > 60 ? message.slice(0, 57) + '...' : message
+                  if (fileName) {
+                    threadTitle = `📄 ${fileName} - ${threadTitle}`
                   }
-
-                  // 2. Gerencia o Histórico de Conversas (Tabela threads)
-                  if (!threadId && !isHistoryCreated && !isSecondTurn) {
-                    let threadTitle = message.length > 60 ? message.slice(0, 57) + '...' : message
-                    if (fileName) {
-                      threadTitle = `📄 ${fileName} - ${threadTitle}`
-                    }
-                    await threads.create(user!.id, assistantId, responseId, threadTitle)
-                    isHistoryCreated = true
-                  } else if (threadId && !isSecondTurn) {
-                    const { supabaseAdmin } = await import('@/lib/supabase')
-                    await supabaseAdmin
-                      .from('threads')
-                      .update({ 
-                        openai_thread_id: responseId,
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('openai_thread_id', threadId)
-                  }
+                  await threads.create(user!.id, assistantId, responseId, threadTitle)
+                  isHistoryCreated = true
+                } else if (threadId) {
+                  const { supabaseAdmin } = await import('@/lib/supabase')
+                  await supabaseAdmin
+                    .from('threads')
+                    .update({ 
+                      openai_thread_id: responseId,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('openai_thread_id', threadId)
                 }
-              }
-
-              // Detecta se a IA chamou o file_search
-              if (chunk.type === 'response.output_item.done' && chunk.item?.type === 'file_search_call') {
-                hasToolCall = true
-              }
-
-              // Repassa o evento para o frontend (escondemos o response.done do primeiro turno se houver tool call)
-              if (chunk.type === 'response.done') {
-                if (!hasToolCall || isSecondTurn) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
-                }
-              } else {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
               }
             }
+
+            // Repassa o evento para o frontend
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
           }
-
-          // Inicia o processamento do primeiro turno
-          await processResponseStream(responseStream, false)
-
-          // ═══ NOVO LOOP: Se o modelo chamou uma ferramenta, iniciamos o 2º turno automaticamente ═══
-          if (hasToolCall && currentResponseId) {
-            console.log(`[RESPONSES DIAG] Ferramenta acionada. Iniciando 2º Turno para gerar texto com id ${currentResponseId}...`)
-            
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const responseStream2 = await (openaiAnalista as any).responses.create({
-              model: "gpt-4.1",
-              store: true,
-              stream: true, 
-              max_output_tokens: 16384,
-              previous_response_id: currentResponseId, // Continua a thread
-              instructions: systemPrompt,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              tools: tools as any,
-              input: [] // Array vazio força o modelo a olhar para os resultados da ferramenta e continuar
-            })
-
-            await processResponseStream(responseStream2, true)
-          }
-
-          // Sinaliza fim definitivo para parsers que esperam [DONE]
+          
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
         } catch (err) {
           console.error("Erro no processamento da stream:", err)
