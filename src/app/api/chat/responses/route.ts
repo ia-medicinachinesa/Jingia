@@ -114,7 +114,7 @@ export async function POST(req: Request) {
           let hasToolCall = false
           let currentResponseId: string | null = null
 
-          // Função auxiliar para processar um stream da Responses API
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const processResponseStream = async (streamToProcess: any, isSecondTurn = false) => {
             for await (const chunk of streamToProcess) {
               if (chunk.type === 'response.created') {
@@ -178,6 +178,7 @@ export async function POST(req: Request) {
               max_output_tokens: 16384,
               previous_response_id: currentResponseId, // Continua a thread
               instructions: systemPrompt,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               tools: tools as any,
               input: [] // Array vazio força o modelo a olhar para os resultados da ferramenta e continuar
             })
