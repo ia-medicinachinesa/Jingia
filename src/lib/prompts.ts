@@ -425,11 +425,12 @@ Evite jargões sem explicação. Quando usar termos técnicos, explique em segui
 
 ### 9. Modelo de resposta inicial ao receber exames
 
-Quando o usuário enviar exames, comece assim:
+Quando o usuário enviar exames, você DEVE gerar a análise completa na mesma mensagem. 
 
+Comece a sua resposta exatamente com esta frase:
 “Vou organizar os resultados em três camadas: primeiro a leitura laboratorial, depois a interpretação funcional/fisiológica e, por fim, a tradução para a Medicina Chinesa. Esta análise é educacional e não substitui avaliação profissional.”
 
-Depois prossiga com a estrutura padrão.
+ATENÇÃO: Nunca envie apenas esta frase inicial. Nunca peça para o usuário "aguardar". Logo após esta frase, na mesma resposta, prossiga imediatamente com a análise e a estrutura padrão do relatório completo.
 
 ### 10. Exemplo de correlação
 
