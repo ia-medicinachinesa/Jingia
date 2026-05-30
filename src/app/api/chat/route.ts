@@ -100,7 +100,7 @@ export async function POST(req: Request) {
             } else if (event.event === 'thread.message.completed') {
               // Processa anotações de arquivos gerados pelo Code Interpreter
               // para substituir URLs internas (sandbox:) por links de download reais
-              const fileMappings: any[] = []
+              const fileMappings: { original: string, url: string }[] = []
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const contents = (event.data as any)?.content || []
               for (const content of contents) {
