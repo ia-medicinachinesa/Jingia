@@ -61,6 +61,17 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
+  // Sincroniza a URL com o threadId ativo sem recarregar a página
+  useEffect(() => {
+    if (threadId && typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      if (url.searchParams.get('thread') !== threadId) {
+        url.searchParams.set('thread', threadId)
+        window.history.replaceState(null, '', url.pathname + url.search)
+      }
+    }
+  }, [threadId])
+
   // Carrega histórico se houver threadId inicial
   useEffect(() => {
     async function loadHistory() {
@@ -183,6 +194,23 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
               toast.error(errorObj.message || errorObj) 
             } catch { 
               toast.error(eventData) 
+            }
+          } else if (eventType === 'files') {
+            // Substitui URLs internas da OpenAI (sandbox:) por links de download reais
+            try {
+              const fileMappings = JSON.parse(eventData)
+              for (const mapping of fileMappings) {
+                assistantMessage = assistantMessage.replaceAll(mapping.original, mapping.url)
+              }
+              setMessages(prev => {
+                const newMsgs = [...prev]
+                if (newMsgs.length > 0) {
+                  newMsgs[newMsgs.length - 1].content = assistantMessage
+                }
+                return newMsgs
+              })
+            } catch (err) {
+              console.error('Erro ao processar mapeamento de arquivos:', err)
             }
           } else if (eventType === 'message' && eventData) {
             try {

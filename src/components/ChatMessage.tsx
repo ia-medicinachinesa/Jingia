@@ -1,10 +1,53 @@
+'use client'
+
+import { useRef } from 'react'
 import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Download } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 interface Props {
   role:    'user' | 'assistant'
   content: string
+}
+
+function CustomTable({ node, children, ...props }: any) {
+  const tableRef = useRef<HTMLTableElement>(null)
+
+  const handleExport = () => {
+    if (!tableRef.current) return
+    try {
+      // Gera o workbook a partir do elemento de tabela DOM
+      const wb = XLSX.utils.table_to_book(tableRef.current, { sheet: "Planilha Jing IA" })
+      // Exporta e faz download automático do arquivo Excel .xlsx
+      XLSX.writeFile(wb, "tabela_jing_ia.xlsx")
+    } catch (error) {
+      console.error("Erro ao exportar tabela para Excel:", error)
+    }
+  }
+
+  return (
+    <div className="my-6 relative border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-gray-800/40">
+      <div className="flex justify-between items-center px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
+        <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Tabela de Resultados</span>
+        <button
+          type="button"
+          onClick={handleExport}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-brand-preto dark:hover:text-brand-offwhite hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
+          title="Baixar dados como planilha Excel (.xlsx)"
+        >
+          <Download size={13} />
+          Exportar Excel
+        </button>
+      </div>
+      <div className="overflow-x-auto p-4">
+        <table ref={tableRef} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" {...props}>
+          {children}
+        </table>
+      </div>
+    </div>
+  )
 }
 
 export default function ChatMessage({ role, content }: Props) {
@@ -36,7 +79,12 @@ export default function ChatMessage({ role, content }: Props) {
               prose-h3:text-base
               prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-gray-800
               prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              components={{
+                table: CustomTable
+              }}
+            >
               {content}
             </ReactMarkdown>
           </div>

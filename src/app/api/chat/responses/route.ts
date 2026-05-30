@@ -14,6 +14,7 @@ const isClerkConfigured =
 export async function POST(req: Request) {
   try {
     const { message, vectorStoreId, assistantId, threadId, fileName } = await req.json()
+    const activeThreadId = (threadId && threadId.startsWith('resp_')) ? threadId : null
 
     if (!message) {
       return NextResponse.json({ error: 'Mensagem é requerida' }, { status: 400 })
@@ -86,7 +87,7 @@ export async function POST(req: Request) {
       store: true,
       stream: true,
       max_output_tokens: 16384,
-      previous_response_id: threadId || undefined,
+      previous_response_id: activeThreadId || undefined,
       instructions: systemPrompt,
       input: [
         { 
@@ -120,14 +121,14 @@ export async function POST(req: Request) {
               if (responseId) {
                 await db.updateLastResponseId(userId, responseId)
 
-                if (!threadId && !isHistoryCreated) {
+                if (!activeThreadId && !isHistoryCreated) {
                   let threadTitle = message.length > 60 ? message.slice(0, 57) + '...' : message
                   if (fileName) {
                     threadTitle = `📄 ${fileName} - ${threadTitle}`
                   }
                   await threads.create(user!.id, assistantId, responseId, threadTitle)
                   isHistoryCreated = true
-                } else if (threadId) {
+                } else if (activeThreadId) {
                   const { supabaseAdmin } = await import('@/lib/supabase')
                   await supabaseAdmin
                     .from('threads')
@@ -135,7 +136,7 @@ export async function POST(req: Request) {
                       openai_thread_id: responseId,
                       updated_at: new Date().toISOString()
                     })
-                    .eq('openai_thread_id', threadId)
+                    .eq('openai_thread_id', activeThreadId)
                 }
               }
             }
