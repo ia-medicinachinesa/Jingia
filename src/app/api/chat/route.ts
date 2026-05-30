@@ -103,6 +103,7 @@ export async function POST(req: Request) {
               const fileMappings: { original: string, url: string }[] = []
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const contents = (event.data as any)?.content || []
+              console.log("[stream] thread.message.completed - Conteúdo bruto do assistente:", JSON.stringify(contents, null, 2))
               for (const content of contents) {
                 if (content.type === 'text' && content.text?.annotations?.length > 0) {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any

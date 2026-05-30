@@ -141,6 +141,10 @@ export async function POST(req: Request) {
               }
             }
 
+            if (chunk.type === 'response.done') {
+              console.log("[responses] response.done - Resposta concluída com sucesso:", JSON.stringify(chunk.response, null, 2))
+            }
+
             // Repassa o evento para o frontend
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
           }
