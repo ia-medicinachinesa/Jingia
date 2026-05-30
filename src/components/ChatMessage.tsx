@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, ComponentPropsWithoutRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -61,6 +62,9 @@ interface CustomLinkProps extends ComponentPropsWithoutRef<'a'> {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CustomLink({ node, ...props }: CustomLinkProps) {
+  const searchParams = useSearchParams()
+  const threadId = searchParams.get('thread')
+  
   let href = props.href || ''
   let isDownload = href.startsWith('/api/files/download')
   
@@ -68,7 +72,12 @@ function CustomLink({ node, ...props }: CustomLinkProps) {
   if (href.startsWith('sandbox:/')) {
     const fileName = href.split('/').pop() || 'arquivo'
     href = `/api/files/download?name=${encodeURIComponent(fileName)}`
+    if (threadId) {
+      href += `&threadId=${encodeURIComponent(threadId)}`
+    }
     isDownload = true
+  } else if (isDownload && threadId && !href.includes('threadId=')) {
+    href += `&threadId=${encodeURIComponent(threadId)}`
   }
 
   if (isDownload) {

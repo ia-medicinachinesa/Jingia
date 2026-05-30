@@ -27,25 +27,60 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const fileId = searchParams.get('fileId')
     const fileName = searchParams.get('name') || 'download'
+    const threadId = searchParams.get('threadId')
 
     let targetFileId = fileId
 
     if (!targetFileId || !targetFileId.startsWith('file-')) {
-      // Fallback: se a OpenAI não gerou a anotação com o file_id, buscamos pelo nome
-      try {
-        const filesList = await openai.files.list()
-        const matchingFiles = filesList.data.filter(f => f.filename === fileName || f.filename.includes(fileName))
-        
-        if (matchingFiles.length > 0) {
-          // Pega o mais recente
-          matchingFiles.sort((a, b) => b.created_at - a.created_at)
-          targetFileId = matchingFiles[0].id
-        } else {
-          return NextResponse.json({ error: 'fileId inválido e arquivo não encontrado pelo nome' }, { status: 400 })
+      // Fallback 1: Buscar o arquivo pesquisando nas mensagens da Thread
+      if (threadId) {
+        try {
+          const messagesList = await openai.beta.threads.messages.list(threadId)
+          for (const msg of messagesList.data) {
+            for (const content of msg.content) {
+              if (content.type === 'text' && content.text?.annotations) {
+                for (const annot of content.text.annotations) {
+                  if (annot.type === 'file_path') {
+                    const annotFileId = annot.file_path.file_id
+                    const annotFileName = annot.text.split('/').pop()
+                    if (
+                      annotFileName === fileName ||
+                      annotFileName?.includes(fileName) ||
+                      fileName.includes(annotFileName || '')
+                    ) {
+                      targetFileId = annotFileId
+                      break
+                    }
+                  }
+                }
+              }
+              if (targetFileId) break
+            }
+            if (targetFileId) break
+          }
+        } catch (err) {
+          console.error('Erro ao buscar arquivo por threadId:', err)
         }
-      } catch (err) {
-        console.error('Erro ao buscar arquivo pelo nome:', err)
-        return NextResponse.json({ error: 'Erro ao buscar arquivo pelo nome' }, { status: 500 })
+      }
+
+      // Fallback 2: Se não encontrou na Thread, busca no repositório global
+      if (!targetFileId || !targetFileId.startsWith('file-')) {
+        try {
+          const filesList = await openai.files.list()
+          const matchingFiles = filesList.data.filter(f => f.filename === fileName || f.filename.includes(fileName))
+          
+          if (matchingFiles.length > 0) {
+            matchingFiles.sort((a, b) => b.created_at - a.created_at)
+            targetFileId = matchingFiles[0].id
+          }
+        } catch (err) {
+          console.error('Erro ao buscar arquivo pelo nome no repositório global:', err)
+        }
+      }
+
+      // Se nenhum dos fallbacks encontrou o arquivo
+      if (!targetFileId || !targetFileId.startsWith('file-')) {
+        return NextResponse.json({ error: 'Não foi possível encontrar o arquivo correspondente na OpenAI' }, { status: 404 })
       }
     }
 
