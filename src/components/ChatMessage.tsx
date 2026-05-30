@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, ComponentPropsWithoutRef } from 'react'
 import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -12,7 +12,11 @@ interface Props {
   content: string
 }
 
-function CustomTable({ node, children, ...props }: any) {
+interface CustomTableProps extends ComponentPropsWithoutRef<'table'> {
+  node?: unknown
+}
+
+function CustomTable({ node: _node, children, ...props }: CustomTableProps) {
   const tableRef = useRef<HTMLTableElement>(null)
 
   const handleExport = () => {
