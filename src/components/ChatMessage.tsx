@@ -84,7 +84,7 @@ function CustomLink({ node, ...props }: CustomLinkProps) {
     // Remove any target attribute to allow native download behavior
     const restProps = { ...props }
     delete restProps.target
-    return <a {...restProps} href={href} download target="_self" rel="noopener noreferrer" />
+    return <a {...restProps} href={href} target="_self" rel="noopener noreferrer" />
   }
   
   return <a {...props} href={href} target="_blank" rel="noopener noreferrer" />
