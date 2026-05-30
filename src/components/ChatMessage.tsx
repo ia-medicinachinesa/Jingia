@@ -61,15 +61,23 @@ interface CustomLinkProps extends ComponentPropsWithoutRef<'a'> {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CustomLink({ node, ...props }: CustomLinkProps) {
-  const isDownload = props.href?.startsWith('/api/files/download')
+  let href = props.href || ''
+  let isDownload = href.startsWith('/api/files/download')
   
+  // Se a OpenAI não enviou anotação (Code Interpreter puro)
+  if (href.startsWith('sandbox:/mnt/data/')) {
+    const fileName = href.split('/').pop() || 'arquivo'
+    href = `/api/files/download?name=${encodeURIComponent(fileName)}`
+    isDownload = true
+  }
+
   if (isDownload) {
     // Adiciona o atributo download para evitar que o Next.js router intercepte o clique
     // e recarregue a página, forçando o comportamento nativo de download do navegador.
-    return <a {...props} download target="_top" rel="noopener noreferrer" />
+    return <a {...props} href={href} download target="_top" rel="noopener noreferrer" />
   }
   
-  return <a {...props} target="_blank" rel="noopener noreferrer" />
+  return <a {...props} href={href} target="_blank" rel="noopener noreferrer" />
 }
 
 export default function ChatMessage({ role, content }: Props) {
@@ -103,6 +111,7 @@ export default function ChatMessage({ role, content }: Props) {
               prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg">
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]}
+              urlTransform={(value: string) => value}
               components={{
                 table: CustomTable,
                 a: CustomLink

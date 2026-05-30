@@ -28,12 +28,28 @@ export async function GET(req: Request) {
     const fileId = searchParams.get('fileId')
     const fileName = searchParams.get('name') || 'download'
 
-    if (!fileId || !fileId.startsWith('file-')) {
-      return NextResponse.json({ error: 'fileId inválido' }, { status: 400 })
+    let targetFileId = fileId
+
+    if (!targetFileId || !targetFileId.startsWith('file-')) {
+      // Fallback: se a OpenAI não gerou a anotação com o file_id, buscamos pelo nome
+      try {
+        const filesList = await openai.files.list()
+        const matchingFiles = filesList.data.filter(f => f.filename === fileName || f.filename.includes(fileName))
+        
+        if (matchingFiles.length > 0) {
+          // Pega o mais recente
+          matchingFiles.sort((a, b) => b.created_at - a.created_at)
+          targetFileId = matchingFiles[0].id
+        } else {
+          return NextResponse.json({ error: 'fileId inválido e arquivo não encontrado pelo nome' }, { status: 400 })
+        }
+      } catch (err) {
+        return NextResponse.json({ error: 'Erro ao buscar arquivo pelo nome' }, { status: 500 })
+      }
     }
 
     // Busca o conteúdo binário do arquivo na OpenAI
-    const fileResponse = await openai.files.content(fileId)
+    const fileResponse = await openai.files.content(targetFileId)
     const arrayBuffer = await fileResponse.arrayBuffer()
 
     return new Response(arrayBuffer, {
