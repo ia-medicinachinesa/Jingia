@@ -66,16 +66,18 @@ function CustomLink({ node, ...props }: CustomLinkProps) {
   const threadId = searchParams.get('thread')
   
   let href = props.href || ''
-  let isDownload = href.startsWith('/api/files/download')
+  const isDownload = href.startsWith('/api/files/download')
   
-  // Se a OpenAI enviou um link sandbox sem anotação (Code Interpreter puro)
+  // Se a OpenAI enviou um link sandbox sem anotação, trata-se de um link simulado (alucinação)
   if (href.startsWith('sandbox:/')) {
-    const fileName = href.split('/').pop() || 'arquivo'
-    href = `/api/files/download?name=${encodeURIComponent(fileName)}`
-    if (threadId) {
-      href += `&threadId=${encodeURIComponent(threadId)}`
-    }
-    isDownload = true
+    return (
+      <span 
+        className="text-gray-400 dark:text-gray-500 italic line-through cursor-not-allowed inline-flex items-center gap-1"
+        title="Este arquivo não foi realmente gerado pela IA. Solicite a geração novamente."
+      >
+        {props.children} (arquivo não gerado)
+      </span>
+    )
   } else if (isDownload && threadId && !href.includes('threadId=')) {
     href += `&threadId=${encodeURIComponent(threadId)}`
   }
