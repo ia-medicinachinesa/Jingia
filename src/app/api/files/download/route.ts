@@ -44,6 +44,7 @@ export async function GET(req: Request) {
           return NextResponse.json({ error: 'fileId inválido e arquivo não encontrado pelo nome' }, { status: 400 })
         }
       } catch (err) {
+        console.error('Erro ao buscar arquivo pelo nome:', err)
         return NextResponse.json({ error: 'Erro ao buscar arquivo pelo nome' }, { status: 500 })
       }
     }
