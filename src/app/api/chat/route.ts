@@ -100,21 +100,24 @@ export async function POST(req: Request) {
             } else if (event.event === 'thread.message.completed') {
               // Processa anotações de arquivos gerados pelo Code Interpreter
               // para substituir URLs internas (sandbox:) por links de download reais
+              const fileMappings: any[] = []
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const msgContent = (event.data as any)?.content?.[0]
-              if (msgContent?.type === 'text' && msgContent.text?.annotations?.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const fileMappings = msgContent.text.annotations
+              const contents = (event.data as any)?.content || []
+              for (const content of contents) {
+                if (content.type === 'text' && content.text?.annotations?.length > 0) {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  .filter((a: any) => a.type === 'file_path')
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  .map((a: any) => ({
-                    original: a.text,
-                    url: `/api/files/download?fileId=${a.file_path.file_id}&name=${encodeURIComponent(a.text.split('/').pop() || 'download')}`
-                  }))
-                if (fileMappings.length > 0) {
-                  controller.enqueue(encoder.encode(`event: files\ndata: ${JSON.stringify(fileMappings)}\n\n`))
+                  content.text.annotations.forEach((a: any) => {
+                    if (a.type === 'file_path') {
+                      fileMappings.push({
+                        original: a.text,
+                        url: `/api/files/download?fileId=${a.file_path.file_id}&name=${encodeURIComponent(a.text.split('/').pop() || 'download')}`
+                      })
+                    }
+                  })
                 }
+              }
+              if (fileMappings.length > 0) {
+                controller.enqueue(encoder.encode(`event: files\ndata: ${JSON.stringify(fileMappings)}\n\n`))
               }
             } else if (event.event === 'thread.run.completed') {
               // Quando o assistente termina de responder, criamos a thread no banco se for nova

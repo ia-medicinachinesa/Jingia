@@ -200,7 +200,10 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             try {
               const fileMappings = JSON.parse(eventData)
               for (const mapping of fileMappings) {
+                // OpenAI às vezes codifica a URL no markdown
+                const encodedOriginal = encodeURI(mapping.original)
                 assistantMessage = assistantMessage.replaceAll(mapping.original, mapping.url)
+                assistantMessage = assistantMessage.replaceAll(encodedOriginal, mapping.url)
               }
               setMessages(prev => {
                 const newMsgs = [...prev]
