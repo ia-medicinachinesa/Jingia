@@ -64,17 +64,17 @@ function CustomLink({ node, ...props }: CustomLinkProps) {
   let href = props.href || ''
   let isDownload = href.startsWith('/api/files/download')
   
-  // Se a OpenAI não enviou anotação (Code Interpreter puro)
-  if (href.startsWith('sandbox:/mnt/data/')) {
+  // Se a OpenAI enviou um link sandbox sem anotação (Code Interpreter puro)
+  if (href.startsWith('sandbox:/')) {
     const fileName = href.split('/').pop() || 'arquivo'
     href = `/api/files/download?name=${encodeURIComponent(fileName)}`
     isDownload = true
   }
 
   if (isDownload) {
-    // Adiciona o atributo download para evitar que o Next.js router intercepte o clique
-    // e recarregue a página, forçando o comportamento nativo de download do navegador.
-    return <a {...props} href={href} download target="_top" rel="noopener noreferrer" />
+    // Remove any target attribute to allow native download behavior
+    const { target, ...restProps } = props
+    return <a {...restProps} href={href} download target="_self" rel="noopener noreferrer" />
   }
   
   return <a {...props} href={href} target="_blank" rel="noopener noreferrer" />
