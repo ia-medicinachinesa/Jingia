@@ -16,7 +16,8 @@ interface CustomTableProps extends ComponentPropsWithoutRef<'table'> {
   node?: unknown
 }
 
-function CustomTable({ node: _node, children, ...props }: CustomTableProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function CustomTable({ node, children, ...props }: CustomTableProps) {
   const tableRef = useRef<HTMLTableElement>(null)
 
   const handleExport = () => {
