@@ -55,6 +55,23 @@ function CustomTable({ node, children, ...props }: CustomTableProps) {
   )
 }
 
+interface CustomLinkProps extends ComponentPropsWithoutRef<'a'> {
+  node?: unknown
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function CustomLink({ node, ...props }: CustomLinkProps) {
+  const isDownload = props.href?.startsWith('/api/files/download')
+  
+  if (isDownload) {
+    // Adiciona o atributo download para evitar que o Next.js router intercepte o clique
+    // e recarregue a página, forçando o comportamento nativo de download do navegador.
+    return <a {...props} download target="_top" rel="noopener noreferrer" />
+  }
+  
+  return <a {...props} target="_blank" rel="noopener noreferrer" />
+}
+
 export default function ChatMessage({ role, content }: Props) {
   const isUser = role === 'user'
 
@@ -87,7 +104,8 @@ export default function ChatMessage({ role, content }: Props) {
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]}
               components={{
-                table: CustomTable
+                table: CustomTable,
+                a: CustomLink
               }}
             >
               {content}
