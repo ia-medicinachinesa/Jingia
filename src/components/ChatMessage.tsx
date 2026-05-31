@@ -66,24 +66,34 @@ function CustomLink({ node, ...props }: CustomLinkProps) {
   const threadId = searchParams.get('thread')
   
   let href = props.href || ''
-  const isDownload = href.startsWith('/api/files/download')
   
-  // Se a OpenAI enviou um link sandbox sem anotação, trata-se de um link simulado (alucinação)
-  if (href.startsWith('sandbox:/')) {
-    return (
-      <span 
-        className="text-gray-400 dark:text-gray-500 italic line-through cursor-not-allowed inline-flex items-center gap-1"
-        title="Este arquivo não foi realmente gerado pela IA. Solicite a geração novamente."
-      >
-        {props.children} (arquivo não gerado)
-      </span>
-    )
-  } else if (isDownload && threadId && !href.includes('threadId=')) {
+  // Intercepta qualquer URL que seja do sandbox ou contenha /mnt/data/
+  const isSandbox = href.startsWith('sandbox:') || href.includes('/mnt/data/')
+  
+  if (isSandbox) {
+    const fileName = href.split('/').pop() || 'download'
+    if (threadId) {
+      href = `/api/files/download?name=${encodeURIComponent(fileName)}&threadId=${encodeURIComponent(threadId)}`
+    } else {
+      // Se não houver threadId no contexto, exibe como indisponível (alucinação ou descontextualizado)
+      return (
+        <span 
+          className="text-gray-400 dark:text-gray-500 italic line-through cursor-not-allowed inline-flex items-center gap-1"
+          title="Este arquivo não pôde ser localizado ou a sessão expirou."
+        >
+          {props.children} (arquivo indisponível)
+        </span>
+      )
+    }
+  }
+
+  const isDownload = href.startsWith('/api/files/download')
+  if (isDownload && threadId && !href.includes('threadId=')) {
     href += `&threadId=${encodeURIComponent(threadId)}`
   }
 
   if (isDownload) {
-    // Remove any target attribute to allow native download behavior
+    // Remove qualquer atributo target para permitir download nativo
     const restProps = { ...props }
     delete restProps.target
     return <a {...restProps} href={href} target="_self" rel="noopener noreferrer" />
