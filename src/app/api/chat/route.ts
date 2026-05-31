@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
     const isFileRequest = /\b(planilha|excel|tabela|relatório|documento|pdf|word|docx|csv|xlsx|arquivo|download|exportar|imagem|png|jpg|jpeg|zip|txt|gráfico|diagrama|gerar|criar)\b/i.test(message)
     const extraInstructions = isFileRequest 
-      ? "ATENÇÃO: O usuário solicitou a geração de um arquivo (planilha, documento, PDF, imagem, gráfico, ZIP, etc.). Você DEVE usar a ferramenta Code Interpreter (Python) para gerar o arquivo real com os dados solicitados e salvá-lo no diretório '/mnt/data/'. Nunca escreva links em markdown ou sandbox manualmente se o arquivo não tiver sido gerado de verdade pelo Code Interpreter (Python)."
+      ? "ATENÇÃO: O usuário solicitou a geração de um arquivo (planilha, documento, PDF, imagem, gráfico, ZIP, etc.). Você DEVE usar a ferramenta Code Interpreter (Python) para gerar o arquivo real de verdade com os dados solicitados e salvá-lo no diretório '/mnt/data/'. Depois de gerá-lo por código, você DEVE disponibilizar o link de download no seu texto no formato estrito '[Nome do Arquivo](sandbox:/mnt/data/nome_do_arquivo.extensão)'. Nunca use links relativos como '/mnt/data/...' ou links simulados; a URL do markdown deve começar obrigatoriamente com o prefixo 'sandbox:/' para que a API da OpenAI anexe a anotação file_path correta com o file_id. Isto é vital para o funcionamento do download."
       : undefined
 
     // ── EXECUTAR ASSISTENTE (STREAMING) ─────────────────────────
