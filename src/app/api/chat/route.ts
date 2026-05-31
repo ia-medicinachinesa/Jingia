@@ -77,9 +77,15 @@ export async function POST(req: Request) {
       content: message
     })
 
+    const isFileRequest = /\b(planilha|excel|tabela|relatório|documento|pdf|word|docx|csv|xlsx|arquivo|download|exportar|imagem|png|jpg|jpeg|zip|txt|gráfico|diagrama|gerar|criar)\b/i.test(message)
+    const extraInstructions = isFileRequest 
+      ? "ATENÇÃO: O usuário solicitou a geração de um arquivo (planilha, documento, PDF, imagem, gráfico, ZIP, etc.). Você DEVE usar a ferramenta Code Interpreter (Python) para gerar o arquivo real com os dados solicitados e salvá-lo no diretório '/mnt/data/'. Nunca escreva links em markdown ou sandbox manualmente se o arquivo não tiver sido gerado de verdade pelo Code Interpreter (Python)."
+      : undefined
+
     // ── EXECUTAR ASSISTENTE (STREAMING) ─────────────────────────
     const runStream = openai.beta.threads.runs.stream(threadId, {
-      assistant_id: assistantConfig.openaiId
+      assistant_id: assistantConfig.openaiId,
+      additional_instructions: extraInstructions
     })
 
     const encoder = new TextEncoder()
