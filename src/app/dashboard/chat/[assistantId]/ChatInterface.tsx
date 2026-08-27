@@ -116,13 +116,9 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     setMessages(prev => [...prev, { role: 'user', content: trimmed }])
     setIsLoading(true)
 
-    // Integração Real da OpenAI via nossa API backend (Streaming)
+    // Integração Real da OpenAI via nossa API backend (Streaming Responses API 2026)
     try {
-      const isNewApiAssistant = assistant.id === 'ASS-07' || assistant.id === 'ASS-06' || assistant.id === 'ASS-05'
-      // Se há arquivos anexados, usar a Responses API que suporta file_search
-      const hasFiles = !!vectorStoreId
-      const useResponsesApi = isNewApiAssistant || hasFiles
-      const apiUrl = useResponsesApi ? '/api/chat/responses' : '/api/chat'
+      const apiUrl = '/api/chat/responses'
       
       const res = await fetch(apiUrl, {
         method: 'POST',
@@ -131,8 +127,8 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           message: trimmed, 
           assistantId: assistant.id,
           threadId: threadId, 
-          vectorStoreId: useResponsesApi ? vectorStoreId : undefined,
-          fileName: useResponsesApi && files.length > 0 
+          vectorStoreId: vectorStoreId || undefined,
+          fileName: files.length > 0 
             ? files.map(f => f.name).join(', ') 
             : undefined,
         })

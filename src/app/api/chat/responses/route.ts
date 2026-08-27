@@ -3,6 +3,7 @@ import { openaiAnalista } from '@/lib/openai'
 import { db, threads } from '@/lib/db'
 import { chatRateLimit } from '@/lib/ratelimit'
 import { PROMPTS } from '@/lib/prompts'
+import { ASSISTANTS } from '@/lib/assistants'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -63,24 +64,40 @@ export async function POST(req: Request) {
       .filter((id): id is string => Boolean(id))
       .map(id => id.trim())
 
-    const tools = storeIds.length > 0 ? [
-      { 
-        type: "file_search",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        vector_store_ids: storeIds as any
-      }
-    ] : []
+    const isFileRequest = /\b(planilha|excel|tabela|relatório|documento|pdf|word|docx|csv|xlsx|arquivo|download|exportar|imagem|png|jpg|jpeg|zip|txt|gráfico|diagrama|gerar|criar)\b/i.test(message)
 
-    // 4. Instruções do Assistente (System Prompt)
-    const systemPrompt = assistantId && PROMPTS[assistantId] 
-      ? PROMPTS[assistantId] 
-      : "Você é um assistente clínico de Inteligência Artificial especializado na Medicina Tradicional Chinesa."
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tools: any[] = []
+    if (storeIds.length > 0) {
+      tools.push({
+        type: "file_search",
+        vector_store_ids: storeIds
+      })
+    }
+    if (isFileRequest) {
+      tools.push({
+        type: "code_interpreter"
+      })
+    }
+
+    // 4. Instruções do Assistente (System Prompt com Fallback Estruturado)
+    const config = ASSISTANTS.find(a => a.id === assistantId)
+    let systemPrompt = assistantId && PROMPTS[assistantId] ? PROMPTS[assistantId] : undefined
+
+    if (!systemPrompt) {
+      if (config) {
+        systemPrompt = `Você é o assistente "${config.name}" da plataforma Jing IA, especializado na área de "${config.category}". Sua função principal é: ${config.description}. Forneça análises clínicas, didáticas, fundamentadas em evidências científicas e na fisiologia moderna integrada à Medicina Tradicional Chinesa (MTC).`
+      } else {
+        systemPrompt = "Você é um assistente clínico de Inteligência Artificial especializado na Medicina Tradicional Chinesa e fisiologia moderna."
+      }
+    }
+
+    if (isFileRequest) {
+      systemPrompt += "\n\nATENÇÃO: O usuário solicitou a geração de um arquivo (planilha, documento, PDF, imagem, gráfico, ZIP, etc.). Você DEVE usar a ferramenta Code Interpreter (Python) para gerar o arquivo real de verdade com os dados solicitados e salvá-lo no diretório '/mnt/data/'. Depois de gerá-lo por código, você DEVE disponibilizar o link de download no seu texto no formato estrito '[Nome do Arquivo](sandbox:/mnt/data/nome_do_arquivo.extensão)'. Nunca use links relativos como '/mnt/data/...' ou links simulados; a URL do markdown deve começar obrigatoriamente com o prefixo 'sandbox:/' para que a anotação correspondente seja gerada."
+    }
 
     // 5. Chamada para a Responses API (OpenAI 2026) com Streaming ativado
-    // Quando há tools (file_search), usamos tool_choice: "required" para forçar
-    // a busca ANTES da geração de texto. Isso garante que o modelo tenha
-    // o conteúdo do arquivo no contexto antes de escrever a análise.
-    const hasTools = tools.length > 0
+    const hasFileSearch = storeIds.length > 0
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const responseStream = await (openaiAnalista as any).responses.create({
       model: "gpt-4.1",
@@ -96,8 +113,8 @@ export async function POST(req: Request) {
         }
       ],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tools: tools as any,
-      tool_choice: hasTools ? "required" : "auto"
+      tools: tools.length > 0 ? (tools as any) : undefined,
+      tool_choice: hasFileSearch ? "required" : "auto"
     })
 
     if (!responseStream) {
@@ -121,7 +138,17 @@ export async function POST(req: Request) {
               if (responseId) {
                 await db.updateLastResponseId(userId, responseId)
 
-                if (!activeThreadId && !isHistoryCreated) {
+                // Transição de threads antigas do padrão 'thread_' para 'resp_'
+                if (threadId && threadId.startsWith('thread_')) {
+                  const { supabaseAdmin } = await import('@/lib/supabase')
+                  await supabaseAdmin
+                    .from('threads')
+                    .update({ 
+                      openai_thread_id: responseId,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('openai_thread_id', threadId)
+                } else if (!activeThreadId && !isHistoryCreated) {
                   let threadTitle = message.length > 60 ? message.slice(0, 57) + '...' : message
                   if (fileName) {
                     threadTitle = `📄 ${fileName} - ${threadTitle}`
