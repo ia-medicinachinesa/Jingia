@@ -179,7 +179,14 @@ export async function POST(req: Request) {
           controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
         } catch (err) {
           console.error("Erro no processamento da stream:", err)
-          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify('Erro no processamento da stream.')}\n\n`))
+          const errStr = err instanceof Error ? err.message : String(err)
+          const isQuotaError = errStr.includes('credit_balance_exhausted') || errStr.includes('insufficient_quota') || errStr.includes('no credits remaining') || errStr.includes('429')
+          
+          const errorMessage = isQuotaError
+            ? 'Saldo de créditos da API da OpenAI esgotado. Por favor, adicione créditos na sua conta em platform.openai.com para restabelecer o atendimento.'
+            : 'Erro interno durante o processamento da resposta.'
+
+          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify(errorMessage)}\n\n`))
         } finally {
           controller.close()
         }
