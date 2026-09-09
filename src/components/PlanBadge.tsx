@@ -1,13 +1,12 @@
+'use client'
+
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/client'
+import { getLocalizedPlanDisplay } from '@/lib/plans'
 
 const BADGE_STYLES: Record<string, string> = {
   essencial:    'bg-brand-aco/20 dark:bg-gray-800 text-brand-sombra dark:text-gray-400',
   profissional: 'bg-brand-preto dark:bg-gray-700 text-brand-offwhite shadow-sm',
-}
-
-const BADGE_LABELS: Record<string, string> = {
-  essencial:    'Essencial',
-  profissional: 'Profissional',
 }
 
 interface Props {
@@ -16,6 +15,8 @@ interface Props {
 }
 
 export default function PlanBadge({ planId, className }: Props) {
+  const { locale } = useI18n()
+  const labels = getLocalizedPlanDisplay(locale)
   return (
     <span
       className={cn(
@@ -24,7 +25,7 @@ export default function PlanBadge({ planId, className }: Props) {
         className
       )}
     >
-      {BADGE_LABELS[planId] ?? planId}
+      {labels[planId as keyof typeof labels]?.name ?? planId}
     </span>
   )
 }

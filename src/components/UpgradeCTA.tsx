@@ -1,7 +1,11 @@
+'use client'
+
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 import { PlanId } from '@/lib/plans'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/client'
+import { getLocalizedPlanDisplay } from '@/lib/plans'
 
 // Próximo plano recomendado para upgrade
 const NEXT_PLAN: Partial<Record<PlanId, string>> = {
@@ -14,6 +18,7 @@ interface Props {
 }
 
 export default function UpgradeCTA({ currentPlan, className }: Props) {
+  const { locale, t } = useI18n()
   const nextPlan = NEXT_PLAN[currentPlan]
   if (!nextPlan) return null // Premium já está no topo
 
@@ -22,20 +27,18 @@ export default function UpgradeCTA({ currentPlan, className }: Props) {
       <div className="flex items-center gap-2 mb-2">
         <Zap size={16} className="text-brand-preto dark:text-brand-offwhite" />
         <span className="text-sm font-semibold text-brand-preto dark:text-gray-200">
-          Limite de mensagens atingido
+          {t('upgrade.limitReached')}
         </span>
       </div>
       <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
-        Faça upgrade para o plano{' '}
-        <strong className="capitalize text-brand-preto dark:text-white">{nextPlan}</strong>{' '}
-        e continue usando seus assistentes sem interrupção.
+        {t('upgrade.description', { plan: getLocalizedPlanDisplay(locale)[nextPlan as PlanId].name })}
       </p>
       {/* Aqui apontamos para a Hubla caso os links estejam na /planos */}
       <Link
         href="/dashboard/planos"
         className="inline-block text-xs font-semibold bg-brand-preto dark:bg-brand-offwhite dark:text-brand-preto text-white px-4 py-2 rounded-lg hover:bg-black transition-colors shadow-sm"
       >
-        Ver planos e assinar →
+        {t('upgrade.viewPlans')}
       </Link>
     </div>
   )

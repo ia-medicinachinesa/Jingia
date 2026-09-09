@@ -1,15 +1,19 @@
 import { redirect } from 'next/navigation'
 export const dynamic = 'force-dynamic'
 import { checkSubscription } from '@/lib/subscription'
-import { ASSISTANTS } from '@/lib/assistants'
+import { getLocalizedAssistants } from '@/lib/assistants'
 import AssistantCard from '@/components/AssistantCard'
 import { PlanId } from '@/lib/plans'
+import { getLocale, getServerTranslator } from '@/i18n/server'
 
 const isClerkConfigured =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
   !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('placeholder')
 
 export default async function DashboardPage() {
+  const locale = getLocale()
+  const t = getServerTranslator(locale)
+  const assistants = getLocalizedAssistants(locale)
   let planId: PlanId = 'profissional'
 
   if (isClerkConfigured) {
@@ -27,8 +31,8 @@ export default async function DashboardPage() {
     planId = (subscription.planId ?? 'essencial') as PlanId
   }
 
-  const baseAssistant = ASSISTANTS.find(a => a.id === 'ASS-01')
-  const proAssistants = ASSISTANTS.filter(a => a.id !== 'ASS-01')
+  const baseAssistant = assistants.find(a => a.id === 'ASS-01')
+  const proAssistants = assistants.filter(a => a.id !== 'ASS-01')
 
   // Agrupa assistentes pro por categoria
   const proCategories = Array.from(new Set(proAssistants.map(a => a.category)))
@@ -36,8 +40,8 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto pb-12">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Clínica IA</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">Selecione um assistente especializado para iniciar.</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{t('dashboard.title')}</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* JING IA BASE */}

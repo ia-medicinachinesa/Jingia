@@ -1,4 +1,5 @@
 import { PlanId } from '@/lib/plans'
+import { Locale } from '@/i18n/config'
 
 export interface AssistantConfig {
   id:          string        // ASS-01, ASS-02, ...
@@ -93,6 +94,43 @@ export const ASSISTANTS: AssistantConfig[] = [
     openaiId:    process.env.OPENAI_ASSISTANT_ID_ASS09 || 'asst_0bEJ5gzO4YyvU9z0Vu0uTDBK',
   },
 ]
+
+const ASSISTANT_COPY: Record<Locale, Record<string, Pick<AssistantConfig, 'name' | 'description' | 'category'>>> = {
+  'pt-BR': Object.fromEntries(ASSISTANTS.map(({ id, name, description, category }) => [id, { name, description, category }])),
+  en: {
+    'ASS-01': { name: 'Jing IA', description: 'General questions about TCM, concepts, Zang-Fu, Qi, and more.', category: 'Clinical Foundations and Reasoning' },
+    'ASS-02': { name: 'Case Study and Report', description: 'Technical analysis of clinical cases and preparation of TCM experience reports.', category: 'Scientific and Academic Work' },
+    'ASS-03': { name: 'YNSA', description: 'Yamamoto New Scalp Acupuncture — points.', category: 'Specialized Techniques' },
+    'ASS-04': { name: 'Auriculotherapy', description: 'Auricular mapping and point selection.', category: 'Specialized Techniques' },
+    'ASS-05': { name: 'AI Photobiomodulation', description: 'Therapeutic laser and LED guidance for acupuncturists.', category: 'Specialized Techniques' },
+    'ASS-06': { name: 'Lab Test Interpretation', description: 'Laboratory analysis from an integrative TCM perspective.', category: 'Clinical Foundations and Reasoning' },
+    'ASS-07': { name: 'Scientific Article Analyst', description: 'Summaries and critical analysis of scientific literature.', category: 'Scientific and Academic Work' },
+    'ASS-08': { name: 'Business Consultant for Acupuncturists', description: 'Strategic guidance and management for growing your clinic.', category: 'Practice and Marketing' },
+    'ASS-09': { name: 'Social Media for Acupuncturists', description: 'Create strategic content, strengthen your authority, and attract patients ethically and professionally.', category: 'Practice and Marketing' },
+  },
+  es: {
+    'ASS-01': { name: 'Jing IA', description: 'Consultas generales sobre MTC, conceptos, Zang-Fu, Qi y mucho más.', category: 'Fundamentos y Razonamiento Clínico' },
+    'ASS-02': { name: 'Estudio de Caso e Informe', description: 'Análisis técnico de casos clínicos y elaboración de informes de experiencia en MTC.', category: 'Producción Científica y Académica' },
+    'ASS-03': { name: 'YNSA', description: 'Nueva Acupuntura Craneal de Yamamoto — puntos.', category: 'Técnicas Especializadas' },
+    'ASS-04': { name: 'Auriculoterapia', description: 'Mapeo auricular y selección de puntos.', category: 'Técnicas Especializadas' },
+    'ASS-05': { name: 'Fotobiomodulación IA', description: 'Láser y LED terapéuticos para acupuntores.', category: 'Técnicas Especializadas' },
+    'ASS-06': { name: 'Interpretación de Análisis', description: 'Análisis de laboratorio desde una perspectiva integrativa de la MTC.', category: 'Fundamentos y Razonamiento Clínico' },
+    'ASS-07': { name: 'Analista de Artículos Científicos', description: 'Resumen y análisis crítico de literatura científica.', category: 'Producción Científica y Académica' },
+    'ASS-08': { name: 'Consultor de Negocios para Acupuntores', description: 'Orientación estratégica y gestión para el crecimiento de tu clínica.', category: 'Consulta y Marketing' },
+    'ASS-09': { name: 'Redes Sociales para Acupuntores', description: 'Crea contenido estratégico, fortalece tu autoridad y atrae pacientes con ética y profesionalismo.', category: 'Consulta y Marketing' },
+  },
+}
+
+export function getLocalizedAssistants(locale: Locale): AssistantConfig[] {
+  return ASSISTANTS.map((assistant) => ({
+    ...assistant,
+    ...(ASSISTANT_COPY[locale][assistant.id] ?? ASSISTANT_COPY['pt-BR'][assistant.id]),
+  }))
+}
+
+export function getLocalizedAssistant(assistantId: string, locale: Locale): AssistantConfig | undefined {
+  return getLocalizedAssistants(locale).find((assistant) => assistant.id === assistantId)
+}
 
 // Retorna somente os assistentes acessíveis para um dado plano
 export function getAssistantsForPlan(planId: PlanId): AssistantConfig[] {

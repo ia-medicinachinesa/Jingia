@@ -1,8 +1,11 @@
+'use client'
+
 import Link from 'next/link'
 import { Lock, Clock, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, Briefcase, LucideIcon } from 'lucide-react'
 import { AssistantConfig, canAccessAssistant } from '@/lib/assistants'
-import { PlanId, PLAN_DISPLAY } from '@/lib/plans'
+import { PlanId, getLocalizedPlanDisplay } from '@/lib/plans'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/client'
 
 // Mapeamento de Ícones Fine-Line para os Assistentes
 const ASSISTANT_ICONS: Record<string, LucideIcon> = {
@@ -23,6 +26,7 @@ interface Props {
 }
 
 export default function AssistantCard({ assistant, planId }: Props) {
+  const { locale, t } = useI18n()
   const hasAccess = canAccessAssistant(assistant.id, planId)
   // Assistentes de nova geração (Responses API) estão sempre configurados internamente
   const isNewApi = ['ASS-05', 'ASS-06', 'ASS-07'].includes(assistant.id)
@@ -30,7 +34,7 @@ export default function AssistantCard({ assistant, planId }: Props) {
 
   // Encontra o plano mínimo necessário para exibir no CTA
   const requiredPlan = assistant.plans[0]
-  const requiredPlanName = PLAN_DISPLAY[requiredPlan as keyof typeof PLAN_DISPLAY]?.name
+  const requiredPlanName = getLocalizedPlanDisplay(locale)[requiredPlan as keyof ReturnType<typeof getLocalizedPlanDisplay>]?.name
 
   const AssistantIcon = ASSISTANT_ICONS[assistant.id] || Sparkles
 
@@ -69,19 +73,19 @@ export default function AssistantCard({ assistant, planId }: Props) {
           {assistant.id === 'ASS-05' && (
             <span className="flex items-center gap-1 text-[10px] uppercase font-black tracking-wider text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-950/40 px-2.5 py-1 rounded-lg border border-green-200/50 dark:border-green-900/50 shadow-sm">
               <Sparkles size={11} className="animate-pulse text-green-600 dark:text-green-400" />
-              Lançamento
+              {t('assistant.launch')}
             </span>
           )}
 
           {!isConfigured ? (
             <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
               <Clock size={12} strokeWidth={2.5} />
-              Em breve
+              {t('assistant.comingSoon')}
             </span>
           ) : !hasAccess ? (
             <span className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2.5 py-1 rounded-lg shadow-inner">
               <Lock size={12} strokeWidth={2.5} />
-              Bloqueado
+              {t('assistant.locked')}
             </span>
           ) : null}
         </div>
@@ -94,11 +98,11 @@ export default function AssistantCard({ assistant, planId }: Props) {
 
       {!isConfigured ? (
         <p className="text-xs text-amber-600 dark:text-amber-500/80 mt-4 font-medium italic">
-          Este assistente será ativado em breve
+          {t('assistant.activationSoon')}
         </p>
       ) : !hasAccess && (
         <p className="text-xs text-brand-preto dark:text-brand-offwhite mt-4 font-medium flex items-center justify-between">
-          Disponível no {requiredPlanName}
+          {t('assistant.availableOn', { plan: requiredPlanName })}
           <span className="text-lg">→</span>
         </p>
       )}

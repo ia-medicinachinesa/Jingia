@@ -1,4 +1,4 @@
-import { PLAN_DISPLAY } from '@/lib/plans'
+import { getLocalizedPlanDisplay } from '@/lib/plans'
 import PlanBadge from '@/components/PlanBadge'
 import UsageBar from '@/components/UsageBar'
 import ProfileForm from './ProfileForm'
@@ -6,8 +6,12 @@ import { db, threads } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import { checkSubscription } from '@/lib/subscription'
 import { Briefcase, User } from 'lucide-react'
+import { getLocale, getServerTranslator } from '@/i18n/server'
+import { INTL_LOCALES } from '@/i18n/config'
 
 export default async function PerfilPage() {
+  const locale = getLocale()
+  const t = getServerTranslator(locale)
   const { currentUser, auth } = await import('@clerk/nextjs/server')
   const { userId: clerkId } = await auth()
   
@@ -18,7 +22,8 @@ export default async function PerfilPage() {
 
   const subscription = await checkSubscription(clerkId)
   const planId = subscription.planId ?? 'essencial'
-  const plan = PLAN_DISPLAY[planId as keyof typeof PLAN_DISPLAY]
+  const planDisplay = getLocalizedPlanDisplay(locale)
+  const plan = planDisplay[planId as keyof typeof planDisplay]
 
   // Busca o ID interno do usuário no banco para evitar erro de UUID nas threads
   const dbUser = await db.getUserByClerkId(clerkId)
@@ -34,8 +39,8 @@ export default async function PerfilPage() {
   return (
     <div className="max-w-4xl mx-auto pb-12 animate-fade-in-up">
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Meu Perfil</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">Gerencie suas informações e uso da assinatura.</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{t('profile.title')}</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-2">{t('profile.subtitle')}</p>
       </div>
 
        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -49,18 +54,13 @@ export default async function PerfilPage() {
           {/* Aviso LGPD */}
           <section className="bg-gray-50/50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-white/5 p-6 flex flex-col gap-3">
             <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
-              Privacidade e Dados
+              {t('profile.privacy')}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Armazenamos apenas e-mail, status da assinatura e histórico de conversas.
-              Não armazenamos dados de pagamento (processados pela Hubla).
+              {t('profile.privacyStored')}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Para solicitar exclusão dos seus dados, entre em contato pelo e-mail{' '}
-              <a href="mailto:privacidade@jing.com.br" className="text-brand-preto dark:text-brand-offwhite font-medium hover:underline">
-                privacidade@jing.com.br
-              </a>
-              .
+              {t('profile.privacyDelete', { email: 'privacidade@jing.com.br' })}
             </p>
           </section>
         </div>
@@ -69,17 +69,17 @@ export default async function PerfilPage() {
           {/* Assinatura */}
           <section className="bg-white/70 dark:bg-gray-800/40 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-white/10 p-6 shadow-sm">
             <h2 className="text-xs font-bold text-brand-preto dark:text-brand-offwhite uppercase tracking-widest mb-6">
-              Plano Atual
+              {t('profile.currentPlan')}
             </h2>
             <div className="flex flex-col items-center text-center p-4 bg-gray-50/50 dark:bg-gray-900/20 rounded-2xl border border-gray-100 dark:border-white/5 mb-6">
               <PlanBadge planId={planId} className="scale-125 mb-4" />
-              <p className="font-bold text-gray-900 dark:text-gray-100 text-xl">{plan?.name ?? 'Sem plano'}</p>
+              <p className="font-bold text-gray-900 dark:text-gray-100 text-xl">{plan?.name ?? t('common.noPlan')}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">{plan?.price}</p>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Mensagens do Mês</span>
+                <span className="text-gray-500 dark:text-gray-400 uppercase font-semibold">{t('profile.monthMessages')}</span>
                 <span className="text-brand-preto dark:text-white font-bold">{subscription.monthlyMessageCount} / {subscription.messageLimit}</span>
               </div>
               <UsageBar
@@ -91,9 +91,9 @@ export default async function PerfilPage() {
 
              {subscription.expiresAt && (
               <div className="mt-8 pt-6 border-t border-gray-50 dark:border-white/5">
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-tighter mb-1">Próxima Renovação</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-tighter mb-1">{t('profile.nextRenewal')}</p>
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  {new Date(subscription.expiresAt).toLocaleDateString('pt-BR')}
+                  {new Date(subscription.expiresAt).toLocaleDateString(INTL_LOCALES[locale])}
                 </p>
               </div>
             )}
@@ -102,13 +102,13 @@ export default async function PerfilPage() {
           {/* Insights Rápidos */}
           <section className="bg-white/70 dark:bg-gray-800/40 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-white/10 p-6 shadow-sm">
             <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-6">
-              Insights de Uso
+              {t('profile.usageInsights')}
             </h2>
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalConversas}</span>
-                  <span className="text-[10px] text-gray-500 uppercase font-bold">Total de Casos</span>
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">{t('profile.totalCases')}</span>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-brand-aco/20 flex items-center justify-center text-brand-preto dark:text-brand-offwhite">
                    <Briefcase size={20} />
@@ -117,7 +117,7 @@ export default async function PerfilPage() {
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalMensagens}</span>
-                  <span className="text-[10px] text-gray-500 uppercase font-bold">Mensagens Trocadas</span>
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">{t('profile.messagesExchanged')}</span>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-brand-sombra">
                   <User size={20} />

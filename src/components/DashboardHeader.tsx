@@ -5,6 +5,8 @@ import { Menu } from 'lucide-react'
 import UsageBar from '@/components/UsageBar'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { PlanId } from '@/lib/plans'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { useI18n } from '@/i18n/client'
 
 interface DashboardHeaderProps {
   userName: string
@@ -20,17 +22,18 @@ export default function DashboardHeader({
   messagesLimit,
   onMenuToggle,
 }: DashboardHeaderProps) {
+  const { t } = useI18n()
   return (
     <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm">
       <div className="flex items-center gap-3">
         {/* Hamburger — só no mobile */}
         {onMenuToggle && (
-          <button onClick={onMenuToggle} className="md:hidden p-2 -ml-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" aria-label="Abrir menu">
+          <button onClick={onMenuToggle} className="md:hidden p-2 -ml-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" aria-label={t('header.openMenu')}>
             <Menu size={22} className="text-gray-600 dark:text-gray-300" />
           </button>
         )}
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 tracking-tight">
-          Olá, {userName}
+          {t('header.hello', { name: userName })}
         </h2>
       </div>
       
@@ -41,6 +44,7 @@ export default function DashboardHeader({
         
         <div className="h-8 w-px bg-gray-200 dark:bg-gray-800"></div>
         
+        <LanguageSwitcher className="hidden sm:inline-flex" />
         <ThemeToggle />
         
         {/* Avatar placeholder — será substituído por UserButton do Clerk quando configurado */}

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { checkSubscription } from '@/lib/subscription'
 import DashboardShell from '@/components/DashboardShell'
 import { PlanId } from '@/lib/plans'
+import { getServerTranslator } from '@/i18n/server'
 
 const isClerkConfigured =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
@@ -13,6 +14,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  const t = getServerTranslator()
   let userName = 'Dev'
   let planId: PlanId = 'profissional'
   let messagesUsed = 5
@@ -26,7 +28,7 @@ export default async function DashboardLayout({
 
     const primaryEmail = user.emailAddresses?.[0]?.emailAddress ?? ''
     const subscription = await checkSubscription(user.id, primaryEmail)
-    userName = user.firstName ?? 'Usuário'
+    userName = user.firstName ?? t('common.assistant')
     planId = (subscription.planId ?? 'essencial') as PlanId
     messagesUsed = subscription.monthlyMessageCount
     messagesLimit = subscription.messageLimit

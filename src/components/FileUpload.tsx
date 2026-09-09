@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { Paperclip, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/client'
 
 interface FileUploadProps {
   onUploadComplete: (vectorStoreId: string, fileId: string, fileName: string) => void
@@ -12,6 +13,7 @@ interface FileUploadProps {
 }
 
 export default function FileUpload({ onUploadComplete, disabled, planId }: FileUploadProps) {
+  const { locale, t } = useI18n()
   const [isUploading, setIsUploading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
   const [fileName, setFileName] = useState<string | null>(null)
@@ -25,7 +27,7 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
 
     // Validação básica
     if (file.size > 20 * 1024 * 1024) {
-      toast.error('Arquivo muito grande', { description: 'O limite para análise é de 20MB.' })
+      toast.error(t('upload.tooLarge'), { description: t('upload.tooLargeDescription') })
       return
     }
 
@@ -38,7 +40,7 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
       'image/webp'
     ]
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Formato não suportado', { description: 'Por favor, envie PDF, DOCX ou TXT.' })
+      toast.error(t('upload.unsupported'), { description: t('upload.unsupportedDescription') })
       return
     }
 
@@ -49,6 +51,7 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
     try {
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('locale', locale)
 
       const response = await fetch('/api/files/upload', {
         method: 'POST',
@@ -57,21 +60,21 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Falha no upload')
+        throw new Error(data.upgradeRequired ? t('upload.professionalOnly') : t('upload.failed'))
       }
 
       const data = await response.json()
       setStatus('success')
       
-      toast.success('Documento pronto', { description: `${file.name} foi processado com sucesso.` })
+      toast.success(t('upload.ready'), { description: t('upload.readyDescription', { name: file.name }) })
       
       // Notifica o pai
       onUploadComplete(data.vectorStoreId, data.fileId, file.name)
 
     } catch (error) {
       setStatus('error')
-      const msg = error instanceof Error ? error.message : 'Erro ao processar arquivo'
-      toast.error('Erro no processamento', { description: msg })
+      const msg = error instanceof Error ? error.message : t('upload.processingErrorDescription')
+      toast.error(t('upload.processingError'), { description: msg })
       setFileName(null)
     } finally {
       setIsUploading(false)
@@ -90,7 +93,7 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
         type="button"
         disabled
         className="p-3 text-gray-300 dark:text-gray-600 cursor-not-allowed transition-colors"
-        title="Disponível apenas no Plano Profissional"
+        title={t('upload.professionalOnly')}
       >
         <Paperclip size={20} />
       </button>
@@ -117,7 +120,7 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
             "p-3 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all",
             "hover:text-brand-preto dark:hover:text-brand-offwhite"
           )}
-          title="Anexar arquivo ou imagem para análise"
+          title={t('upload.attach')}
         >
           <Paperclip size={20} />
         </button>

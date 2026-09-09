@@ -1,4 +1,7 @@
+'use client'
+
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/client'
 
 interface Props {
   used:       number
@@ -8,6 +11,7 @@ interface Props {
 }
 
 export default function UsageBar({ used, limit, showLabel = false, className }: Props) {
+  const { t } = useI18n()
   const percentage = Math.min((used / limit) * 100, 100)
 
   const barColor =
@@ -19,7 +23,7 @@ export default function UsageBar({ used, limit, showLabel = false, className }: 
     <div className={cn('w-full', className)}>
       {showLabel && (
         <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Mensagens usadas</span>
+          <span>{t('usage.used')}</span>
           <span className={percentage >= 90 ? 'text-red-500 font-semibold' : ''}>
             {used} / {limit}
           </span>
@@ -33,7 +37,7 @@ export default function UsageBar({ used, limit, showLabel = false, className }: 
       </div>
       {!showLabel && (
         <p className="text-xs text-gray-400 mt-1">
-          {used}/{limit} mensagens usadas este mês
+          {t('usage.monthly', { used, limit })}
         </p>
       )}
     </div>

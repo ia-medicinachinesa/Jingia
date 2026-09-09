@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react'
-import { PLAN_DISPLAY } from '@/lib/plans'
+import { getLocalizedPlanDisplay } from '@/lib/plans'
 import { cn } from '@/lib/utils'
+import { getLocale, getServerTranslator } from '@/i18n/server'
 
 // Substituir futuramente pelos links de checkout da Hubla
 const CHECKOUT_URLS = {
@@ -9,21 +10,24 @@ const CHECKOUT_URLS = {
 }
 
 export default function PlanosPage() {
+  const locale = getLocale()
+  const t = getServerTranslator(locale)
+  const planDisplay = getLocalizedPlanDisplay(locale)
   return (
     <div className="max-w-6xl mx-auto pb-12 animate-fade-in-up">
       {/* Cabeçalho */}
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 tracking-tight">
-          Nossos Planos
+          {t('plans.title')}
         </h1>
         <p className="text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
-          Aumente a capacidade magnética da sua clínica com assistência médica baseada em IA de alta performance.
+          {t('plans.subtitle')}
         </p>
       </div>
 
       {/* Grid de planos */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto items-stretch">
-        {Object.entries(PLAN_DISPLAY).map(([planId, plan]) => (
+        {Object.entries(planDisplay).map(([planId, plan]) => (
           <div
             key={planId}
             className={cn(
@@ -42,7 +46,7 @@ export default function PlanosPage() {
             {/* Badge destaque */}
             {planId === 'profissional' && (
               <span className="absolute -top-3.5 inset-x-0 mx-auto w-fit text-xs font-bold uppercase tracking-widest bg-brand-preto dark:bg-brand-offwhite dark:text-brand-preto text-white px-5 py-1.5 rounded-full shadow-lg">
-                Mais Recomendado
+                {t('plans.recommended')}
               </span>
             )}
 
@@ -74,14 +78,14 @@ export default function PlanosPage() {
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
               )}
             >
-              Assinar na Hubla
+              {t('plans.subscribe')}
             </a>
           </div>
         ))}
       </div>
 
       <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-16 font-medium">
-        Pagamento processado de forma 100% segura pela Hubla.<br/>A Jing IA não armazena dados de cartão.
+        {t('plans.paymentNotice')}<br/>{t('plans.cardNotice')}
       </p>
     </div>
   )
