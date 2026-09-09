@@ -159,6 +159,8 @@ CREATE TRIGGER trg_threads_updated
 -- ════════════════════════════════════════════════════════════════
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE threads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscription_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE security_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Política: service_role pode tudo (usado pelo backend via SUPABASE_SERVICE_ROLE_KEY)
 -- Nenhuma política para anon = bloqueio total por padrão
@@ -408,8 +410,23 @@ MSG_LIMIT_TRIAL=20                                 ✅
 | 4 | **Clerk** — Configurar webhook (após ter domínio/ngrok) | 5 min | 🟡 Alto |
 | 5 | **Hubla** — Criar produtos e configurar webhook | 10 min | 🟡 Alto |
 
-> [!IMPORTANT]
-> Os webhooks do Clerk e Hubla (passos 4 e 5) precisam de uma URL pública. Para desenvolvimento local, use **ngrok** (`ngrok http 3000`). Para produção, configure após o deploy no Vercel.
+---
+
+## 8. Governança e Segurança de Acessos (Prevenção de Lockout)
+
+Para evitar centralização de poder e garantir que a operação do sistema seja resiliente a conflitos societários (lockout de desenvolvedor), devem ser aplicadas as seguintes diretrizes de governança técnica:
+
+1. **Estruturas Organizacionais Coletivas:**
+   * **GitHub:** O repositório deve residir em uma *GitHub Organization*, com ambos os sócios configurados como *Owners*.
+   * **Vercel / Supabase / Clerk:** As contas não devem ser pessoais. Devem ser registradas sob o formato de *Teams* ou *Organizations*, onde múltiplos e-mails corporativos compartilham nível máximo de permissão administrativa.
+   * **Domínio de Internet (Registro.br):** O domínio (`jingia.com.br`) deve ser registrado sob o CNPJ da empresa, com ambos os sócios cadastrados como contatos Administrativo e Técnico.
+
+2. **Independência Tecnológica (Soberania do Código):**
+   * **Versionamento Local:** O desenvolvedor deve manter um clone local atualizado do repositório Git com todo o histórico de branches. O Git é descentralizado por natureza; a perda de acesso ao GitHub não apaga seu código local.
+   * **Versionamento do Schema de Banco:** Toda a estrutura de banco de dados (tabelas, RPCs, triggers) está codificada na pasta `Docs`. Caso o banco de produção seja desativado, o desenvolvedor pode recriar a infraestrutura completa do Supabase em minutos através dos scripts locais.
+
+3. **Gerenciador de Credenciais Corporativo:**
+   * As senhas mestras de serviços compartilhados devem ser mantidas em cofres corporativos (ex: *1Password*, *Bitwarden*) com 2FA compartilhado e chaves de recuperação de acesso sob custódia de ambos.
 
 ---
 

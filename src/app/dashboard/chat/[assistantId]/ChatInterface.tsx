@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Send, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, LucideIcon, Lock } from 'lucide-react'
 import { AssistantConfig } from '@/lib/assistants'
@@ -52,7 +51,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
   const [files, setFiles]                     = useState<FileItem[]>([])
   const bottomRef                             = useRef<HTMLDivElement>(null)
   const inputRef                              = useRef<HTMLTextAreaElement>(null)
-  const router                                = useRouter()
+  const loadedHistoryKeyRef                   = useRef<string | null>(null)
 
   // Scroll automático para a última mensagem
   useEffect(() => {
@@ -81,7 +80,9 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
   // Carrega histórico pelo ID interno e converte automaticamente links antigos.
   useEffect(() => {
     async function loadHistory() {
-      if (!initialConversationId && !initialLegacyThreadId) return
+      const historyKey = initialConversationId || initialLegacyThreadId
+      if (!historyKey || loadedHistoryKeyRef.current === historyKey) return
+      loadedHistoryKeyRef.current = historyKey
       
       setIsLoadingHistory(true)
       try {
@@ -193,8 +194,8 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           }
 
           if (eventData === '[DONE]') {
-            // Fim do stream finalizado pela API legada
-            router.refresh()
+            // O estado local já contém a resposta completa. Atualizar a rota aqui
+            // recarregaria o histórico e poderia sobrescrever a mensagem recém-gerada.
             inputRef.current?.focus()
             continue
           }
@@ -244,7 +245,6 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
                 } 
                 // Fim da Resposta
                 else if (parsed.type === 'response.done') {
-                  router.refresh()
                   inputRef.current?.focus()
                 }
               } 

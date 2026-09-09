@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext } from 'react'
+import { createContext, useCallback, useContext, useMemo } from 'react'
 import { Locale } from './config'
 import type { Messages, TranslationKey } from './messages'
 
@@ -16,7 +16,8 @@ export function I18nProvider({
   locale,
   messages,
 }: I18nContextValue & { children: React.ReactNode }) {
-  return <I18nContext.Provider value={{ locale, messages }}>{children}</I18nContext.Provider>
+  const value = useMemo(() => ({ locale, messages }), [locale, messages])
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
 
 export function useI18n() {

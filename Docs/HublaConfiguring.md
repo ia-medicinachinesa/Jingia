@@ -133,6 +133,9 @@ CREATE TABLE IF NOT EXISTS subscription_events (
 
 CREATE INDEX idx_subscription_events_event_id ON subscription_events(event_id);
 CREATE INDEX idx_subscription_events_user_id ON subscription_events(user_id);
+
+-- Ativar Row Level Security (RLS) por segurança
+ALTER TABLE subscription_events ENABLE ROW LEVEL SECURITY;
 ```
 
 ---

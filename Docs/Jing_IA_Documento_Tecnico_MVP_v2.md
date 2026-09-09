@@ -434,6 +434,8 @@ O RLS é uma camada de segurança adicional no banco de dados que garante que me
 <p>-- Habilitar RLS nas tabelas sensíveis</p>
 <p>ALTER TABLE threads ENABLE ROW LEVEL SECURITY;</p>
 <p>ALTER TABLE users ENABLE ROW LEVEL SECURITY;</p>
+<p>ALTER TABLE subscription_events ENABLE ROW LEVEL SECURITY;</p>
+<p>ALTER TABLE security_audit_log ENABLE ROW LEVEL SECURITY;</p>
 <p>-- Usuário só vê seus próprios threads</p>
 <p>CREATE POLICY user_threads ON threads</p>
 <p>FOR ALL USING (user_id = (SELECT id FROM users WHERE clerk_user_id = auth.uid()));</p>
