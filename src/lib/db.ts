@@ -216,6 +216,16 @@ export interface ThreadRow {
   updated_at:       string
 }
 
+export interface ThreadMessageRow {
+  id:                 string
+  thread_id:          string
+  request_id:         string
+  role:               'user' | 'assistant'
+  content:            string
+  openai_response_id: string | null
+  created_at:         string
+}
+
 export const threads = {
   // Cria uma nova thread no banco
   create: async (userId: string, assistantId: string, openaiThreadId: string, title?: string) => {
@@ -293,6 +303,65 @@ export const threads = {
     return data as ThreadRow | null
   },
 
+  // Busca uma conversa pelo ID interno, sempre limitada ao proprietário.
+  getByIdForUser: async (threadId: string, userId: string) => {
+    const { data, error } = await supabaseAdmin
+      .from('threads')
+      .select('*')
+      .eq('id', threadId)
+      .eq('user_id', userId)
+      .single()
+
+    if (error && error.code !== 'PGRST116') throw error
+    return data as ThreadRow | null
+  },
+
+  // Compatibilidade com links antigos que carregam o ID externo da OpenAI.
+  getByOpenaiIdForUser: async (openaiThreadId: string, userId: string) => {
+    const { data, error } = await supabaseAdmin
+      .from('threads')
+      .select('*')
+      .eq('openai_thread_id', openaiThreadId)
+      .eq('user_id', userId)
+      .single()
+
+    if (error && error.code !== 'PGRST116') throw error
+    return data as ThreadRow | null
+  },
+
+  // Atualiza apenas o ponteiro externo; o ID interno da conversa permanece estável.
+  updateOpenaiId: async (threadId: string, userId: string, openaiThreadId: string) => {
+    const { data, error } = await supabaseAdmin
+      .from('threads')
+      .update({
+        openai_thread_id: openaiThreadId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', threadId)
+      .eq('user_id', userId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data as ThreadRow
+  },
+
+  incrementCountById: async (threadId: string, userId: string) => {
+    const thread = await threads.getByIdForUser(threadId, userId)
+    if (!thread) return
+
+    const { error } = await supabaseAdmin
+      .from('threads')
+      .update({
+        message_count: (thread.message_count ?? 0) + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', threadId)
+      .eq('user_id', userId)
+
+    if (error) throw error
+  },
+
   // Exclui uma thread
   delete: async (threadId: string, userId: string) => {
     const { error } = await supabaseAdmin
@@ -314,4 +383,59 @@ export const threads = {
       .update({ title, updated_at: new Date().toISOString() })
       .eq('openai_thread_id', openaiThreadId)
   }
+}
+
+function isMissingThreadMessagesTable(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false
+  return error.code === '42P01' || error.code === 'PGRST205' ||
+    Boolean(error.message?.includes("Could not find the table 'public.thread_messages'"))
+}
+
+// ═══════════════════════════════════════════════════════════════
+// THREAD MESSAGES — Histórico durável, independente da OpenAI
+// ═══════════════════════════════════════════════════════════════
+export const threadMessages = {
+  listByThread: async (threadId: string, limit = 100): Promise<ThreadMessageRow[]> => {
+    const { data, error } = await supabaseAdmin
+      .from('thread_messages')
+      .select('*')
+      .eq('thread_id', threadId)
+      .order('created_at', { ascending: true })
+      .limit(limit)
+
+    // Compatibilidade durante o intervalo entre deploy e aplicação da migration.
+    if (isMissingThreadMessagesTable(error)) {
+      console.warn('Tabela thread_messages ainda não foi criada; usando histórico legado.')
+      return []
+    }
+    if (error) throw error
+    return (data ?? []) as ThreadMessageRow[]
+  },
+
+  upsert: async (message: {
+    threadId: string
+    requestId: string
+    role: 'user' | 'assistant'
+    content: string
+    openaiResponseId?: string | null
+    createdAt?: string
+  }): Promise<boolean> => {
+    const { error } = await supabaseAdmin
+      .from('thread_messages')
+      .upsert({
+        thread_id: message.threadId,
+        request_id: message.requestId,
+        role: message.role,
+        content: message.content,
+        openai_response_id: message.openaiResponseId ?? null,
+        created_at: message.createdAt ?? new Date().toISOString(),
+      }, { onConflict: 'thread_id,request_id,role' })
+
+    if (isMissingThreadMessagesTable(error)) {
+      console.warn('Mensagem não persistida: aplique a migration de thread_messages.')
+      return false
+    }
+    if (error) throw error
+    return true
+  },
 }

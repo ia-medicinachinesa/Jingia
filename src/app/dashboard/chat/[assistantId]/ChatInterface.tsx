@@ -10,6 +10,7 @@ import ChatMessage from '@/components/ChatMessage'
 import UpgradeCTA from '@/components/UpgradeCTA'
 import FileUpload from '@/components/FileUpload'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/client'
 
 // Mapeamento de Ícones Fine-Line (Sincronizado)
 const ASSISTANT_ICONS: Record<string, LucideIcon> = {
@@ -23,31 +24,28 @@ const ASSISTANT_ICONS: Record<string, LucideIcon> = {
   'ASS-08': Megaphone,
 }
 
-// Aviso Médico de Responsabilidade
-const MEDICAL_DISCLAIMER =
-  'Aviso: Este assistente é uma ferramenta de suporte clínico para acupunturistas. ' +
-  'As informações geradas não substituem o julgamento clínico do profissional ' +
-  'nem constituem prescrição médica. Use com responsabilidade.'
-
 interface Message {
   role:    'user' | 'assistant'
   content: string
 }
 
 interface Props {
-  assistant:       AssistantConfig
-  planId:          PlanId
-  messagesUsed:    number
-  messagesLimit:   number
-  initialThreadId: string | null
+  assistant:             AssistantConfig
+  planId:                PlanId
+  messagesUsed:          number
+  messagesLimit:         number
+  initialConversationId: string | null
+  initialLegacyThreadId: string | null
 }
 
-export default function ChatInterface({ assistant, planId, messagesUsed, messagesLimit, initialThreadId }: Props) {
+export default function ChatInterface({ assistant, planId, messagesUsed, messagesLimit, initialConversationId, initialLegacyThreadId }: Props) {
+  const { locale, t } = useI18n()
   const [messages, setMessages]               = useState<Message[]>([])
   const [input, setInput]                     = useState('')
   const [isLoading, setIsLoading]             = useState(false)
-  const [isLoadingHistory, setIsLoadingHistory] = useState(!!initialThreadId)
-  const [threadId, setThreadId]               = useState<string | null>(initialThreadId)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(!!initialConversationId || !!initialLegacyThreadId)
+  const [conversationId, setConversationId]   = useState<string | null>(initialConversationId)
+  const [threadId, setThreadId]               = useState<string | null>(initialLegacyThreadId)
   const [usedCount, setUsedCount]             = useState(messagesUsed)
   const [vectorStoreId, setVectorStoreId]     = useState<string | null>(null)
   interface FileItem { id: string; name: string }
@@ -61,30 +59,44 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
-  // Sincroniza a URL com o threadId ativo sem recarregar a página
+  // Mantém um ID interno estável na URL; o thread externo fica apenas para downloads legados.
   useEffect(() => {
-    if (threadId && typeof window !== 'undefined') {
+    if ((conversationId || threadId) && typeof window !== 'undefined') {
       const url = new URL(window.location.href)
-      if (url.searchParams.get('thread') !== threadId) {
+      let changed = false
+      if (conversationId && url.searchParams.get('conversation') !== conversationId) {
+        url.searchParams.set('conversation', conversationId)
+        changed = true
+      }
+      if (threadId && url.searchParams.get('thread') !== threadId) {
         url.searchParams.set('thread', threadId)
+        changed = true
+      }
+      if (changed) {
         window.history.replaceState(null, '', url.pathname + url.search)
       }
     }
-  }, [threadId])
+  }, [conversationId, threadId])
 
-  // Carrega histórico se houver threadId inicial
+  // Carrega histórico pelo ID interno e converte automaticamente links antigos.
   useEffect(() => {
     async function loadHistory() {
-      if (!initialThreadId) return
+      if (!initialConversationId && !initialLegacyThreadId) return
       
       setIsLoadingHistory(true)
       try {
-        // Busca mensagens
-        const res = await fetch(`/api/threads/messages?threadId=${initialThreadId}`)
+        const params = new URLSearchParams()
+        if (initialConversationId) params.set('conversationId', initialConversationId)
+        else if (initialLegacyThreadId) params.set('threadId', initialLegacyThreadId)
+        const res = await fetch(`/api/threads/messages?${params}`)
         const data = await res.json()
+        if (!res.ok) throw new Error(data.error || t('history.loadError'))
         if (data.messages) {
           setMessages(data.messages)
         }
+        if (data.conversationId) setConversationId(data.conversationId)
+        if (data.threadId) setThreadId(data.threadId)
+        if (data.historyUnavailable) toast.warning(t('chat.historyUnavailable'))
 
         // Recupera os nomes dos arquivos do título retornado pela API
         if (data.title?.startsWith('📄 ')) {
@@ -94,12 +106,13 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
         }
       } catch (error) {
         console.error('Erro ao carregar histórico:', error)
+        toast.error(error instanceof Error ? error.message : t('history.loadError'))
       } finally {
         setIsLoadingHistory(false)
       }
     }
     loadHistory()
-  }, [initialThreadId])
+  }, [initialConversationId, initialLegacyThreadId, t])
 
   const isAtLimit = usedCount >= messagesLimit
 
@@ -108,13 +121,14 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     const trimmed = input.trim()
     if (!trimmed || isLoading || isAtLimit) return
     if (trimmed.length > 4000) {
-      toast.error('Mensagem muito longa', { description: 'Máximo de 4.000 caracteres permitidos.' })
+      toast.error(t('chat.tooLong'), { description: t('chat.tooLongDescription') })
       return
     }
 
     setInput('')
     setMessages(prev => [...prev, { role: 'user', content: trimmed }])
     setIsLoading(true)
+    const requestId = crypto.randomUUID()
 
     // Integração Real da OpenAI via nossa API backend (Streaming Responses API 2026)
     try {
@@ -126,17 +140,20 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
         body: JSON.stringify({ 
           message: trimmed, 
           assistantId: assistant.id,
-          threadId: threadId, 
+          conversationId,
+          threadId,
+          requestId,
           vectorStoreId: vectorStoreId || undefined,
           fileName: files.length > 0 
             ? files.map(f => f.name).join(', ') 
             : undefined,
+          locale,
         })
       })
       
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Erro ao comunicar com o assistente.')
+        throw new Error(data.error || t('chat.assistantError'))
       }
 
       // 1. Aumentar o uso na view localmente para feedback instantâneo
@@ -149,7 +166,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
       
-      if (!reader) throw new Error('Stream não suportado pelo navegador.')
+      if (!reader) throw new Error(t('chat.streamError'))
 
       let assistantMessage = ''
       let buffer = ''
@@ -182,8 +199,12 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             continue
           }
 
-          if (eventType === 'threadId') {
+          if (eventType === 'conversationId') {
+            setConversationId(eventData)
+          } else if (eventType === 'threadId') {
             setThreadId(eventData)
+          } else if (eventType === 'conversationRecovered') {
+            toast.info(t('chat.conversationRecovered'))
           } else if (eventType === 'error') {
             try { 
               const errorObj = JSON.parse(eventData)
@@ -221,10 +242,6 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
                 if (parsed.type === 'response.output_text.delta' && parsed.delta) {
                   assistantMessage += parsed.delta
                 } 
-                // Captura do ID da resposta para manter o contexto (Pointer para a próxima mensagem)
-                else if (parsed.type === 'response.created' && parsed.response?.id) {
-                  setThreadId(parsed.response.id)
-                }
                 // Fim da Resposta
                 else if (parsed.type === 'response.done') {
                   router.refresh()
@@ -254,7 +271,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
       }
       
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Não foi possível conectar ao servidor.'
+      const message = err instanceof Error ? err.message : t('chat.connectionError')
       toast.error(message)
     } finally {
       setIsLoading(false)
@@ -289,7 +306,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
       <div className="flex-1 overflow-y-auto p-5 md:p-6 scroll-smooth">
         {/* Disclaimer médico */}
         <div className="bg-amber-50/50 dark:bg-amber-900/20 border border-amber-100/50 dark:border-amber-800/50 rounded-xl p-4 mb-6 text-xs text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
-          ⚕️ {MEDICAL_DISCLAIMER}
+          ⚕️ {t('chat.disclaimer')}
         </div>
         
         {/* Identificador de Múltiplos Arquivos (Estilo Gemini/GPT) */}
@@ -301,7 +318,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
                   <FileText size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] uppercase tracking-widest font-black text-gray-400 dark:text-gray-500 mb-0.5">Anexo</p>
+                  <p className="text-[10px] uppercase tracking-widest font-black text-gray-400 dark:text-gray-500 mb-0.5">{t('chat.attachment')}</p>
                   <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{file.name}</h4>
                 </div>
                 <button 
@@ -310,7 +327,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
                     if (files.length === 1) setVectorStoreId(null)
                   }}
                   className="p-1 hover:bg-white dark:hover:bg-gray-700 rounded-md text-gray-400 hover:text-red-500 transition-all"
-                  title="Remover arquivo"
+                  title={t('chat.removeFile')}
                 >
                   <Lock size={14} />
                 </button>
@@ -334,7 +351,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
               <span className="w-2.5 h-2.5 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:150ms]" />
               <span className="w-2.5 h-2.5 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:300ms]" />
             </div>
-            <p className="text-gray-500 dark:text-gray-400 font-medium">Carregando conversa...</p>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">{t('chat.loadingConversation')}</p>
           </div>
         )}
 
@@ -345,16 +362,16 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
                <AssistantIcon size={32} strokeWidth={1.5} className="text-brand-aco opacity-50" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 font-medium">
-              Olá! Sou o especialista em <strong className="text-brand-preto dark:text-brand-offwhite">{assistant.name}</strong>.
+              {t('chat.welcome', { name: assistant.name })}
             </p>
-            <p className="text-sm mt-1">Como posso te ajudar hoje na sua prática clínica?</p>
+            <p className="text-sm mt-1">{t('chat.help')}</p>
           </div>
         )}
 
         {/* Lista de mensagens */}
         <div className="space-y-6" aria-live="polite">
           {messages.map((msg, i) => (
-            <ChatMessage key={i} role={msg.role} content={msg.content} />
+            <ChatMessage key={i} role={msg.role} content={msg.content} threadId={threadId} />
           ))}
 
           {isLoading && (
@@ -364,7 +381,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
                 <span className="w-2 h-2 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:150ms]" />
                 <span className="w-2 h-2 bg-brand-preto dark:bg-gray-400 rounded-full animate-pulse [animation-delay:300ms]" />
               </div>
-              <span className="animate-pulse">Pensando...</span>
+              <span className="animate-pulse">{t('chat.thinking')}</span>
             </div>
           )}
           <div ref={bottomRef} />
@@ -381,7 +398,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
               planId={planId}
               onUploadComplete={(vsId, fId, fName) => {
                 setVectorStoreId(vsId)
-                setFiles(prev => [...prev, { id: fId, name: fName || 'Arquivo selecionado' }])
+                setFiles(prev => [...prev, { id: fId, name: fName || t('chat.fileSelected') }])
               }}
               disabled={isLoading}
             />
@@ -392,7 +409,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isAtLimit ? 'Limite de mensagens atingido.' : 'Descreva o caso clínico ou dúvida...'}
+            placeholder={isAtLimit ? t('chat.limitPlaceholder') : t('chat.placeholder')}
             disabled={isLoading || isAtLimit}
             rows={1}
             maxLength={4000}
@@ -417,17 +434,17 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
               'bg-brand-preto text-white hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600',
               'disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed disabled:shadow-none'
             )}
-            aria-label="Enviar mensagem"
+            aria-label={t('chat.send')}
           >
             <Send size={20} className={input.trim() && !isLoading ? "ml-1" : ""} />
           </button>
         </form>
         <div className="flex justify-between items-center px-2 mt-3">
             <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">
-              {input.length}/4000 caracteres
+              {t('chat.characters', { count: input.length })}
             </p>
             <p className="text-[11px] text-gray-400 dark:text-gray-500 hidden sm:block">
-              <strong>Enter</strong> para enviar · <strong>Shift+Enter</strong> para linha
+              {t('chat.keyboardHint')}
             </p>
         </div>
       </div>

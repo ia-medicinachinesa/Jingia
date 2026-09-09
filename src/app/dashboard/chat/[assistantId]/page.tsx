@@ -1,9 +1,10 @@
 import { redirect, notFound } from 'next/navigation'
 export const dynamic = 'force-dynamic'
 import { checkSubscription } from '@/lib/subscription'
-import { ASSISTANTS, canAccessAssistant } from '@/lib/assistants'
+import { getLocalizedAssistant, canAccessAssistant } from '@/lib/assistants'
 import { PlanId } from '@/lib/plans'
 import ChatInterface from './ChatInterface'
+import { getLocale } from '@/i18n/server'
 
 const isClerkConfigured =
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
@@ -11,10 +12,11 @@ const isClerkConfigured =
 
 interface Props {
   params: { assistantId: string }
-  searchParams: { thread?: string }
+  searchParams: { conversation?: string; thread?: string }
 }
 
 export default async function ChatPage({ params, searchParams }: Props) {
+  const locale = getLocale()
   let userId = 'dev_123'
 
   if (isClerkConfigured) {
@@ -32,7 +34,7 @@ export default async function ChatPage({ params, searchParams }: Props) {
   }
 
   const planId = (subscription.planId ?? 'essencial') as PlanId
-  const assistant = ASSISTANTS.find(a => a.id === params.assistantId)
+  const assistant = getLocalizedAssistant(params.assistantId, locale)
 
   // Assistente não existe
   if (!assistant) notFound()
@@ -49,7 +51,8 @@ export default async function ChatPage({ params, searchParams }: Props) {
           planId={planId}
           messagesUsed={subscription.monthlyMessageCount}
           messagesLimit={subscription.messageLimit}
-          initialThreadId={searchParams.thread ?? null}
+          initialConversationId={searchParams.conversation ?? null}
+          initialLegacyThreadId={searchParams.thread ?? null}
         />
     </div>
   )

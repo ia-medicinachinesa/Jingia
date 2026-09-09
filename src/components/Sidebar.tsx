@@ -3,12 +3,14 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
 import { LayoutDashboard, User, Settings, LogOut, History, X } from 'lucide-react'
 import { PlanId } from '@/lib/plans'
 import PlanBadge from '@/components/PlanBadge'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/i18n/client'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 interface SidebarProps {
   planId: PlanId
@@ -18,14 +20,16 @@ interface SidebarProps {
 
 export default function Sidebar({ planId, isMobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { signOut } = useClerk()
+  const { t } = useI18n()
 
 
   const links = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Histórico', href: '/dashboard/historico', icon: History },
-    { name: 'Meu Perfil', href: '/dashboard/perfil', icon: User },
-    { name: 'Planos', href: '/dashboard/planos', icon: Settings },
+    { name: t('nav.dashboard'), href: '/dashboard', icon: LayoutDashboard },
+    { name: t('nav.history'), href: '/dashboard/historico', icon: History },
+    { name: t('nav.profile'), href: '/dashboard/perfil', icon: User },
+    { name: t('nav.plans'), href: '/dashboard/planos', icon: Settings },
   ]
 
   const sidebarContent = (
@@ -51,7 +55,7 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
         </Link>
         {/* Botão fechar — só visível no mobile */}
         {onClose && (
-          <button onClick={onClose} className="md:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} aria-label={t('nav.closeMenu')} className="md:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors">
             <X size={20} className="text-gray-500" />
           </button>
         )}
@@ -59,13 +63,14 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
 
       <nav className="flex-1 px-4 py-4 space-y-1">
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
-          Menu Principal
+          {t('nav.mainMenu')}
         </h3>
         {links.map((link) => {
           const Icon = link.icon
+          const resumedFromHistory = pathname.startsWith('/dashboard/chat') && searchParams.has('conversation')
           const isActive =
             pathname === link.href ||
-            (pathname.startsWith('/dashboard/chat') && link.href === '/dashboard') ||
+            (pathname.startsWith('/dashboard/chat') && link.href === (resumedFromHistory ? '/dashboard/historico' : '/dashboard')) ||
             (pathname.startsWith('/dashboard/historico') && link.href === '/dashboard/historico')
 
           return (
@@ -90,7 +95,7 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
       <div className="p-4 border-t border-gray-100 dark:border-gray-800">
         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-4 border border-gray-100 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Meu Plano</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('nav.myPlan')}</span>
           </div>
           <PlanBadge planId={planId} />
         </div>
@@ -100,8 +105,9 @@ export default function Sidebar({ planId, isMobileOpen = false, onClose }: Sideb
           className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         >
           <LogOut size={18} />
-          Sair
+          {t('nav.signOut')}
         </button>
+        <LanguageSwitcher className="mt-3 w-full sm:hidden" />
       </div>
     </>
   )

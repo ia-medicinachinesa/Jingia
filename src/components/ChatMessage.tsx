@@ -1,16 +1,17 @@
 'use client'
 
 import { useRef, ComponentPropsWithoutRef } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
+import { useI18n } from '@/i18n/client'
 
 interface Props {
   role:    'user' | 'assistant'
   content: string
+  threadId?: string | null
 }
 
 interface CustomTableProps extends ComponentPropsWithoutRef<'table'> {
@@ -19,6 +20,7 @@ interface CustomTableProps extends ComponentPropsWithoutRef<'table'> {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CustomTable({ node, children, ...props }: CustomTableProps) {
+  const { t } = useI18n()
   const tableRef = useRef<HTMLTableElement>(null)
 
   const handleExport = () => {
@@ -36,15 +38,15 @@ function CustomTable({ node, children, ...props }: CustomTableProps) {
   return (
     <div className="my-6 relative border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm bg-white dark:bg-gray-800/40">
       <div className="flex justify-between items-center px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
-        <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Tabela de Resultados</span>
+        <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">{t('chat.resultsTable')}</span>
         <button
           type="button"
           onClick={handleExport}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-brand-preto dark:hover:text-brand-offwhite hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
-          title="Baixar dados como planilha Excel (.xlsx)"
+          title={t('chat.exportExcelTitle')}
         >
           <Download size={13} />
-          Exportar Excel
+          {t('chat.exportExcel')}
         </button>
       </div>
       <div className="overflow-x-auto p-4">
@@ -58,12 +60,13 @@ function CustomTable({ node, children, ...props }: CustomTableProps) {
 
 interface CustomLinkProps extends ComponentPropsWithoutRef<'a'> {
   node?: unknown
+  contextThreadId?: string | null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function CustomLink({ node, ...props }: CustomLinkProps) {
-  const searchParams = useSearchParams()
-  const threadId = searchParams.get('thread')
+function CustomLink({ node, contextThreadId, ...props }: CustomLinkProps) {
+  const { t } = useI18n()
+  const threadId = contextThreadId
   
   let href = props.href || ''
   
@@ -79,9 +82,9 @@ function CustomLink({ node, ...props }: CustomLinkProps) {
       return (
         <span 
           className="text-gray-400 dark:text-gray-500 italic line-through cursor-not-allowed inline-flex items-center gap-1"
-          title="Este arquivo não pôde ser localizado ou a sessão expirou."
+          title={t('chat.fileUnavailableTitle')}
         >
-          {props.children} (arquivo indisponível)
+          {props.children} ({t('chat.fileUnavailable')})
         </span>
       )
     }
@@ -102,7 +105,7 @@ function CustomLink({ node, ...props }: CustomLinkProps) {
   return <a {...props} href={href} target="_blank" rel="noopener noreferrer" />
 }
 
-export default function ChatMessage({ role, content }: Props) {
+export default function ChatMessage({ role, content, threadId }: Props) {
   const isUser = role === 'user'
 
   return (
@@ -136,7 +139,7 @@ export default function ChatMessage({ role, content }: Props) {
               urlTransform={(value: string) => value}
               components={{
                 table: CustomTable,
-                a: CustomLink
+                a: props => <CustomLink {...props} contextThreadId={threadId} />
               }}
             >
               {content}
