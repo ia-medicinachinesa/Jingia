@@ -59,11 +59,30 @@ export async function POST(req: Request) {
 
     checkpoint = 'Preparação do Buffer (toFile)'
     const { toFile } = await import('openai')
+    const { openaiAnalista } = await import('@/lib/openai')
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const fileForOpenAI = await toFile(buffer, file.name)
 
-    // 4. Integração com OpenAI Vector Store
+    // Detecção de Imagem vs Documento
+    const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name)
+
+    if (isImage) {
+      checkpoint = 'Upload de Imagem para Visão (OpenAI Files)'
+      const uploadedFile = await openaiAnalista.files.create({
+        file: fileForOpenAI,
+        purpose: 'vision',
+      })
+
+      return NextResponse.json({
+        success: true,
+        fileId: uploadedFile.id,
+        fileName: file.name,
+        fileType: 'image'
+      })
+    }
+
+    // 4. Integração com OpenAI Vector Store (Apenas documentos de texto: PDF, DOCX, TXT, etc.)
     checkpoint = 'Criação/Busca de Vector Store'
     const vectorStoreId = await vectorStoreProvider.getOrCreateVectorStore(userId)
     
@@ -74,7 +93,8 @@ export async function POST(req: Request) {
       success: true, 
       vectorStoreId, 
       fileId,
-      fileName: file.name 
+      fileName: file.name,
+      fileType: 'document'
     })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

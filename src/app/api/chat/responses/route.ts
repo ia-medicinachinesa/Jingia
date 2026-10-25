@@ -56,6 +56,7 @@ export async function POST(req: Request) {
     const {
       message,
       vectorStoreId,
+      imageFileIds,
       assistantId,
       conversationId,
       threadId: legacyThreadId,
@@ -107,7 +108,22 @@ export async function POST(req: Request) {
       ? suppliedRequestId
       : crypto.randomUUID()
 
-    const content = [{ type: 'input_text', text: message }]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const content: any[] = [{ type: 'input_text', text: message }]
+
+    // Anexa imagens multimodais diretamente na Responses API
+    if (Array.isArray(imageFileIds) && imageFileIds.length > 0) {
+      for (const imgId of imageFileIds) {
+        if (typeof imgId === 'string' && imgId.startsWith('file-')) {
+          content.push({
+            type: 'input_image',
+            file_id: imgId,
+            detail: 'auto'
+          })
+        }
+      }
+    }
+
     const ASSISTANT_VECTOR_STORES: Record<string, string> = {
       'ASS-05': 'vs_6a0a572794488191b7ad8481f8686685',
     }
@@ -137,6 +153,10 @@ export async function POST(req: Request) {
       systemPrompt += "\n\nATENÇÃO: O usuário solicitou a geração de um arquivo (planilha, documento, PDF, imagem, gráfico, ZIP, etc.). Você DEVE usar a ferramenta Code Interpreter (Python) para gerar o arquivo real de verdade com os dados solicitados e salvá-lo no diretório '/mnt/data/'. Depois de gerá-lo por código, você DEVE disponibilizar o link de download no seu texto no formato estrito '[Nome do Arquivo](sandbox:/mnt/data/nome_do_arquivo.extensão)'. Nunca use links relativos como '/mnt/data/...' ou links simulados; a URL do markdown deve começar obrigatoriamente com o prefixo 'sandbox:/' para que a anotação correspondente seja gerada."
     }
 
+    const hasUserImage = Array.isArray(imageFileIds) && imageFileIds.length > 0
+    // Se o usuário está enviando imagem para avaliação sem documento RAG anexo, não forçamos 'required' na busca
+    const toolChoice = (storeIds.length > 0 && !hasUserImage) ? 'required' : 'auto'
+
     const createResponse = (previousId: string | null, replayHistory: boolean) => {
       const input = replayHistory
         ? [
@@ -155,7 +175,7 @@ export async function POST(req: Request) {
         instructions: systemPrompt,
         input,
         tools: responseTools.length > 0 ? responseTools : undefined,
-        tool_choice: storeIds.length > 0 ? 'required' : 'auto',
+        tool_choice: storeIds.length > 0 ? toolChoice : 'auto',
       })
     }
 

@@ -78,16 +78,26 @@ uploadAndAttachFile: async (vectorStoreId: string, file: File) => {
 ```
 
 ### 8.3. Responses API (src/app/api/chat/responses/route.ts)
-O coração da multimodalidade. Aceita texto e arquivos simultaneamente.
+O coração da multimodalidade. Aceita texto, documentos e imagens simultaneamente de forma desacoplada:
+- **Documentos (PDF, DOCX, TXT)**: Indexados em Vector Store (`file_search`).
+- **Imagens (JPG, PNG, WEBP)**: Enviadas via OpenAI Files API com `purpose: 'vision'` e injetadas como `input_image` com `file_id`.
+
 ```typescript
 const content: any[] = [{ type: "input_text", text: message }]
-if (fileId) content.push({ type: "input_file", file_id: fileId })
+
+// Visão Multimodal
+if (imageFileIds?.length) {
+  for (const imgId of imageFileIds) {
+    content.push({ type: "input_image", file_id: imgId, detail: "auto" })
+  }
+}
 
 const response = await (openaiAnalista as any).responses.create({
   model: "gpt-4.1",
   instructions: systemPrompt,
-  input: [{ role: "user", content: content }],
-  tools: tools as any
+  input: [{ role: "user", content }],
+  tools: tools.length > 0 ? (tools as any) : undefined,
+  tool_choice: (storeIds.length > 0 && !imageFileIds?.length) ? "required" : "auto"
 })
 ```
 

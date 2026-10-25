@@ -47,7 +47,12 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
   const [threadId, setThreadId]               = useState<string | null>(initialLegacyThreadId)
   const [usedCount, setUsedCount]             = useState(messagesUsed)
   const [vectorStoreId, setVectorStoreId]     = useState<string | null>(null)
-  interface FileItem { id: string; name: string }
+  interface FileItem {
+    id: string
+    name: string
+    type: 'image' | 'document'
+    vectorStoreId?: string
+  }
   const [files, setFiles]                     = useState<FileItem[]>([])
   const bottomRef                             = useRef<HTMLDivElement>(null)
   const inputRef                              = useRef<HTMLTextAreaElement>(null)
@@ -134,6 +139,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     // Integração Real da OpenAI via nossa API backend (Streaming Responses API 2026)
     try {
       const apiUrl = '/api/chat/responses'
+      const imageFileIds = files.filter(f => f.type === 'image').map(f => f.id)
       
       const res = await fetch(apiUrl, {
         method: 'POST',
@@ -145,6 +151,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           threadId,
           requestId,
           vectorStoreId: vectorStoreId || undefined,
+          imageFileIds: imageFileIds.length > 0 ? imageFileIds : undefined,
           fileName: files.length > 0 
             ? files.map(f => f.name).join(', ') 
             : undefined,
@@ -396,9 +403,13 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           <div className="mb-1.5">
             <FileUpload 
               planId={planId}
-              onUploadComplete={(vsId, fId, fName) => {
-                setVectorStoreId(vsId)
-                setFiles(prev => [...prev, { id: fId, name: fName || t('chat.fileSelected') }])
+              onUploadComplete={(vsId, fId, fName, fType) => {
+                if (vsId) setVectorStoreId(vsId)
+                setFiles(prev => [...prev, { id: fId, name: fName || t('chat.fileSelected'), type: fType, vectorStoreId: vsId }])
+              }}
+              onReset={() => {
+                setFiles([])
+                setVectorStoreId(null)
               }}
               disabled={isLoading}
             />

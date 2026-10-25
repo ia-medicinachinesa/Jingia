@@ -7,12 +7,13 @@ import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n/client'
 
 interface FileUploadProps {
-  onUploadComplete: (vectorStoreId: string, fileId: string, fileName: string) => void
+  onUploadComplete: (vectorStoreId: string | undefined, fileId: string, fileName: string, fileType: 'image' | 'document') => void
+  onReset?: () => void
   disabled?: boolean
   planId: string
 }
 
-export default function FileUpload({ onUploadComplete, disabled, planId }: FileUploadProps) {
+export default function FileUpload({ onUploadComplete, onReset, disabled, planId }: FileUploadProps) {
   const { locale, t } = useI18n()
   const [isUploading, setIsUploading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
@@ -59,8 +60,11 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.upgradeRequired ? t('upload.professionalOnly') : t('upload.failed'))
+        const data = await response.json().catch(() => ({}))
+        const errorMsg = data.upgradeRequired 
+          ? t('upload.professionalOnly') 
+          : (data.error || t('upload.failed'))
+        throw new Error(errorMsg)
       }
 
       const data = await response.json()
@@ -68,8 +72,9 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
       
       toast.success(t('upload.ready'), { description: t('upload.readyDescription', { name: file.name }) })
       
-      // Notifica o pai
-      onUploadComplete(data.vectorStoreId, data.fileId, file.name)
+      const fileType: 'image' | 'document' = data.fileType || (file.type.startsWith('image/') ? 'image' : 'document')
+      // Notifica o componente pai com vectorStoreId (se houver), fileId, nome e tipo
+      onUploadComplete(data.vectorStoreId, data.fileId, file.name, fileType)
 
     } catch (error) {
       setStatus('error')
@@ -85,6 +90,7 @@ export default function FileUpload({ onUploadComplete, disabled, planId }: FileU
   const reset = () => {
     setStatus('idle')
     setFileName(null)
+    onReset?.()
   }
 
   if (!isProfissional) {
