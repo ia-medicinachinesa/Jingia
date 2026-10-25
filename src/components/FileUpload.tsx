@@ -1,10 +1,15 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
 import { Paperclip, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n/client'
+
+export interface FileUploadRef {
+  uploadFile: (file: File) => Promise<void>
+  reset: () => void
+}
 
 interface FileUploadProps {
   onUploadComplete: (vectorStoreId: string | undefined, fileId: string, fileName: string, fileType: 'image' | 'document') => void
@@ -13,7 +18,10 @@ interface FileUploadProps {
   planId: string
 }
 
-export default function FileUpload({ onUploadComplete, onReset, disabled, planId }: FileUploadProps) {
+const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(function FileUpload(
+  { onUploadComplete, onReset, disabled, planId },
+  ref
+) {
   const { locale, t } = useI18n()
   const [isUploading, setIsUploading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
@@ -22,11 +30,8 @@ export default function FileUpload({ onUploadComplete, onReset, disabled, planId
 
   const isProfissional = planId === 'profissional'
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validação básica
+  const processFile = async (file: File) => {
+    // Validação básica de tamanho (20MB)
     if (file.size > 20 * 1024 * 1024) {
       toast.error(t('upload.tooLarge'), { description: t('upload.tooLargeDescription') })
       return
@@ -91,6 +96,17 @@ export default function FileUpload({ onUploadComplete, onReset, disabled, planId
     setStatus('idle')
     setFileName(null)
     onReset?.()
+  }
+
+  useImperativeHandle(ref, () => ({
+    uploadFile: processFile,
+    reset,
+  }))
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    processFile(file)
   }
 
   if (!isProfissional) {
@@ -158,4 +174,6 @@ export default function FileUpload({ onUploadComplete, onReset, disabled, planId
       )}
     </div>
   )
-}
+})
+
+export default FileUpload

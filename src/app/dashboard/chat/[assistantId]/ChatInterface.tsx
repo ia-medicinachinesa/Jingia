@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Send, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, LucideIcon, Lock } from 'lucide-react'
+import { Send, Sparkles, FileText, Target, Ear, Zap, Activity, BookOpen, Megaphone, LucideIcon, Lock, UploadCloud, Image as ImageIcon } from 'lucide-react'
 import { AssistantConfig } from '@/lib/assistants'
 import { PlanId } from '@/lib/plans'
 import ChatMessage from '@/components/ChatMessage'
 import UpgradeCTA from '@/components/UpgradeCTA'
-import FileUpload from '@/components/FileUpload'
+import FileUpload, { FileUploadRef } from '@/components/FileUpload'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/i18n/client'
 
@@ -54,6 +54,9 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     vectorStoreId?: string
   }
   const [files, setFiles]                     = useState<FileItem[]>([])
+  const [isDragging, setIsDragging]           = useState(false)
+  const fileUploadRef                         = useRef<FileUploadRef>(null)
+  const dragCounterRef                        = useRef(0)
   const bottomRef                             = useRef<HTMLDivElement>(null)
   const inputRef                              = useRef<HTMLTextAreaElement>(null)
   const loadedHistoryKeyRef                   = useRef<string | null>(null)
@@ -294,10 +297,107 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
     }
   }
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current++
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current--
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0
+      setIsDragging(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounterRef.current = 0
+    setIsDragging(false)
+
+    if (planId !== 'profissional') {
+      toast.error(t('upload.professionalOnly'), {
+        description: 'O envio de documentos e fotos para avaliação é exclusivo do Plano Profissional.'
+      })
+      return
+    }
+
+    const droppedFiles = Array.from(e.dataTransfer.files || [])
+    if (droppedFiles.length === 0) return
+
+    if (droppedFiles.length > 1) {
+      toast.info('Processando apenas o primeiro arquivo enviado.')
+    }
+
+    fileUploadRef.current?.uploadFile(droppedFiles[0])
+  }
+
+  // Suporte a colar capturas de tela e fotos com Ctrl+V
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].kind === 'file') {
+          const file = items[i].getAsFile()
+          if (file) {
+            e.preventDefault()
+            if (planId !== 'profissional') {
+              toast.error(t('upload.professionalOnly'), {
+                description: 'O anexo de fotos e documentos é exclusivo do Plano Profissional.'
+              })
+              return
+            }
+            fileUploadRef.current?.uploadFile(file)
+            break
+          }
+        }
+      }
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [planId, t])
+
   const AssistantIcon = ASSISTANT_ICONS[assistant.id] || Sparkles
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] max-w-4xl mx-auto bg-white/70 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden animate-fade-in-up">
+    <div 
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="relative flex flex-col h-[calc(100vh-120px)] max-w-4xl mx-auto bg-white/70 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden animate-fade-in-up"
+    >
+      {/* Overlay Visual de Drag and Drop para Tela Cheia */}
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-2 border-dashed border-brand-preto/40 dark:border-white/40 rounded-2xl p-6 text-center transition-all animate-fade-in pointer-events-none">
+          <div className="w-16 h-16 rounded-2xl bg-brand-preto/5 dark:bg-white/10 flex items-center justify-center text-brand-preto dark:text-brand-offwhite mb-4 animate-bounce">
+            <UploadCloud size={32} strokeWidth={1.5} />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+            {planId === 'profissional' ? 'Solte o arquivo ou foto aqui' : 'Recurso do Plano Profissional'}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
+            {planId === 'profissional' 
+              ? 'Suporte para fotos de avaliação (JPG, PNG, WEBP) e documentos clínicos (PDF, DOCX, TXT)'
+              : 'O envio de fotos e documentos para análise é exclusivo para assinantes do Plano Profissional.'}
+          </p>
+        </div>
+      )}
 
       {/* Header do assistente */}
       <div className="flex items-center gap-4 p-5 md:p-6 border-b border-gray-100 dark:border-white/10 bg-gray-50/30 dark:bg-gray-800/30">
@@ -322,10 +422,12 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
             {files.map((file, idx) => (
               <div key={idx} className="bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-white/5 rounded-2xl p-3 flex items-center gap-3 shadow-sm backdrop-blur-sm group transition-all hover:shadow-md max-w-full sm:max-w-[300px]">
                 <div className="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center text-brand-preto dark:text-brand-offwhite shadow-sm ring-1 ring-gray-100 dark:ring-white/5">
-                  <FileText size={20} />
+                  {file.type === 'image' ? <ImageIcon size={20} /> : <FileText size={20} />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] uppercase tracking-widest font-black text-gray-400 dark:text-gray-500 mb-0.5">{t('chat.attachment')}</p>
+                  <p className="text-[10px] uppercase tracking-widest font-black text-gray-400 dark:text-gray-500 mb-0.5">
+                    {file.type === 'image' ? 'Foto de Avaliação' : t('chat.attachment')}
+                  </p>
                   <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{file.name}</h4>
                 </div>
                 <button 
@@ -402,6 +504,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
           {/* Componente de Upload de Arquivos (disponível para todos os assistentes) */}
           <div className="mb-1.5">
             <FileUpload 
+              ref={fileUploadRef}
               planId={planId}
               onUploadComplete={(vsId, fId, fName, fType) => {
                 if (vsId) setVectorStoreId(vsId)
