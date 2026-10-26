@@ -254,7 +254,7 @@ export default function ChatInterface({ assistant, planId, messagesUsed, message
                   assistantMessage += parsed.delta
                 } 
                 // Fim da Resposta
-                else if (parsed.type === 'response.done') {
+                else if (parsed.type === 'response.completed' || parsed.type === 'response.done') {
                   inputRef.current?.focus()
                 }
               } 

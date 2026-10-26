@@ -37,16 +37,19 @@ function responseMessages(response: any): ChatMessage[] {
     .join('\n')
   if (userText) messages.push({ role: 'user', content: userText })
 
-  const assistantText = (response.output ?? [])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .filter((item: any) => item.type === 'message')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .flatMap((item: any) => item.content ?? [])
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .filter((part: any) => part.type === 'output_text' || part.type === 'text')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((part: any) => part.text ?? '')
-    .join('')
+  let assistantText = typeof response.output_text === 'string' ? response.output_text : ''
+  if (!assistantText) {
+    assistantText = (response.output ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((item: any) => item.type === 'message')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .flatMap((item: any) => item.content ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((part: any) => part.type === 'output_text' || part.type === 'text')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((part: any) => part.text ?? '')
+      .join('')
+  }
   if (assistantText) messages.push({ role: 'assistant', content: assistantText })
 
   return messages
@@ -82,7 +85,10 @@ export async function GET(req: Request) {
     if (!conversation) return NextResponse.json({ error: 'Conversa não encontrada' }, { status: 404 })
 
     const durable = await threadMessages.listByThread(conversation.id, 100)
-    if (durable.length > 0) {
+    const hasAssistant = durable.some(m => m.role === 'assistant')
+
+    // Se temos mensagens duráveis e elas incluem a resposta do assistente, retorna diretamente
+    if (durable.length > 0 && hasAssistant) {
       return NextResponse.json({
         messages: durable.map(({ role, content }) => ({ role, content })),
         conversationId: conversation.id,
@@ -91,10 +97,10 @@ export async function GET(req: Request) {
       })
     }
 
+    // Se o banco está vazio ou incompleto (ex: apenas mensagens do usuário foram salvas), tenta recuperar da OpenAI
     let messages: ChatMessage[] = []
     try {
       if (conversation.openai_thread_id.startsWith('resp_')) {
-        // A Responses API legada só permite recuperar a última interação por esse ponteiro.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const response = await (openaiAnalista as any).responses.retrieve(conversation.openai_thread_id)
         messages = responseMessages(response)
@@ -114,6 +120,14 @@ export async function GET(req: Request) {
     } catch (error) {
       if (!isRemoteHistoryUnavailable(error)) throw error
       console.warn(`[threads/messages] Histórico remoto indisponível para ${conversation.id}.`)
+      if (durable.length > 0) {
+        return NextResponse.json({
+          messages: durable.map(({ role, content }) => ({ role, content })),
+          conversationId: conversation.id,
+          threadId: conversation.openai_thread_id,
+          title: conversation.title,
+        })
+      }
       return NextResponse.json({
         messages: [],
         conversationId: conversation.id,
@@ -123,14 +137,42 @@ export async function GET(req: Request) {
       })
     }
 
-    // Migra silenciosamente o que ainda estiver disponível na OpenAI.
-    for (const item of messages) {
-      await threadMessages.upsert({
-        threadId: conversation.id,
-        requestId: crypto.randomUUID(),
-        role: item.role,
-        content: item.content,
-        openaiResponseId: conversation.openai_thread_id,
+    // Se a OpenAI retornou mensagens, faz a autocura no banco salvando as respostas que faltavam
+    if (messages.length > 0) {
+      for (const item of messages) {
+        await threadMessages.upsert({
+          threadId: conversation.id,
+          requestId: crypto.randomUUID(),
+          role: item.role,
+          content: item.content,
+          openaiResponseId: conversation.openai_thread_id,
+        })
+      }
+
+      const refreshedDurable = await threadMessages.listByThread(conversation.id, 100)
+      if (refreshedDurable.length > 0) {
+        return NextResponse.json({
+          messages: refreshedDurable.map(({ role, content }) => ({ role, content })),
+          conversationId: conversation.id,
+          threadId: conversation.openai_thread_id,
+          title: conversation.title,
+        })
+      }
+
+      return NextResponse.json({
+        messages,
+        conversationId: conversation.id,
+        threadId: conversation.openai_thread_id,
+        title: conversation.title,
+      })
+    }
+
+    if (durable.length > 0) {
+      return NextResponse.json({
+        messages: durable.map(({ role, content }) => ({ role, content })),
+        conversationId: conversation.id,
+        threadId: conversation.openai_thread_id,
+        title: conversation.title,
       })
     }
 

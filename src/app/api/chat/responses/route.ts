@@ -205,6 +205,7 @@ export async function POST(req: Request) {
             controller.enqueue(encoder.encode('event: conversationRecovered\ndata: true\n\n'))
           }
 
+          let assistantSaved = false
           for await (const chunk of responseStream) {
             if (chunk.type === 'response.created') {
               responseId = chunk.response?.id ?? null
@@ -236,8 +237,8 @@ export async function POST(req: Request) {
               assistantMessage += chunk.delta
             }
 
-            if (chunk.type === 'response.done' && activeConversation) {
-              if (!assistantMessage) assistantMessage = getCompletedText(chunk.response)
+            if ((chunk.type === 'response.completed' || chunk.type === 'response.done') && activeConversation) {
+              if (!assistantMessage && chunk.response) assistantMessage = getCompletedText(chunk.response)
               if (assistantMessage) {
                 await threadMessages.upsert({
                   threadId: activeConversation.id,
@@ -246,11 +247,24 @@ export async function POST(req: Request) {
                   content: assistantMessage,
                   openaiResponseId: responseId,
                 })
+                assistantSaved = true
               }
               if (conversation) await threads.incrementCountById(activeConversation.id, user.id)
             }
 
             controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+          }
+
+          // Garantia de persistência: se o stream terminou e a mensagem do assistente ainda não foi persistida
+          if (!assistantSaved && activeConversation && assistantMessage) {
+            await threadMessages.upsert({
+              threadId: activeConversation.id,
+              requestId,
+              role: 'assistant',
+              content: assistantMessage,
+              openaiResponseId: responseId,
+            })
+            if (conversation) await threads.incrementCountById(activeConversation.id, user.id)
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
